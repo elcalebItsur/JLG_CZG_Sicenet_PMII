@@ -135,11 +135,10 @@ private fun ProfileDetailScreen(
                     Divider()
                     ProfileInfoRow(label = "Carrera", value = profile.carrera)
                     ProfileInfoRow(label = "Semestre Actual", value = profile.semActual)
-                    ProfileInfoRow(label = "Especialidad", value = profile.especialidad)
+                    ProfileInfoRowExpandible(label = "Especialidad", value = profile.especialidad)
                     ProfileInfoRow(label = "Créditos Acumulados", value = profile.cdtsReunidos)
                     ProfileInfoRow(label = "Créditos Actuales", value = profile.cdtsActuales)
-                    ProfileInfoRow(label = "Lineamiento", value = profile.estatusAcademico)
-                    ProfileInfoRow(label = "Inscrito", value = profile.inscrito)
+                    ProfileInfoRow(label = "Inscrito", value = convertBooleanToText(profile.inscrito))
                 }
             }
         }
@@ -155,8 +154,29 @@ private fun ProfileInfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Text(text = label, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(0.4f))
+        Text(text = value, modifier = Modifier.weight(0.6f))
+    }
+}
+
+@Composable
+private fun ProfileInfoRowExpandible(label: String, value: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(text = label, fontWeight = FontWeight.SemiBold)
-        Text(text = value)
+        Text(text = value, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+private fun convertBooleanToText(value: String): String {
+    return when (value.lowercase()) {
+        "true" -> "Si"
+        "false" -> "No"
+        else -> value
     }
 }
 
