@@ -1,0 +1,144 @@
+package com.example.jlg_czg_sicenet.data
+
+import android.util.Log
+import com.example.jlg_czg_sicenet.model.ProfileStudent
+import com.example.jlg_czg_sicenet.model.Usuario
+import com.example.jlg_czg_sicenet.network.SICENETWService
+import com.example.jlg_czg_sicenet.network.bodyacceso
+import com.example.jlg_czg_sicenet.network.bodyperfil
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.HttpException
+
+interface SNRepository {
+    suspend fun acceso(matricula: String, contrasenia: String): Boolean
+    suspend fun profile(matricula: String): ProfileStudent
+    suspend fun getMatricula(): String
+}
+
+class NetworSNRepository(
+    private val snApiService: SICENETWService
+) : SNRepository {
+    
+    private var userMatricula: String = ""
+
+    private fun escapeXml(input: String): String {
+        return input.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&apos;")
+    }
+
+    override suspend fun acceso(matricula: String, contrasenia: String): Boolean {
+        Log.d("SNRepository", "===== INICIANDO AUTENTICACIÓN =====")
+        Log.d("SNRepository", "Matrícula: $matricula")
+        
+        return try {
+            val safeMatricula = escapeXml(matricula)
+            val safeContrasenia = escapeXml(contrasenia)
+            val soapBody = bodyacceso.format(safeMatricula.uppercase(), safeContrasenia)
+            
+            Log.d("SNRepository", "Enviando SOAP Body...")
+            
+            val response = try {
+                snApiService.acceso(soapBody.toRequestBody("text/xml;charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                Log.e("SNRepository", "❌ HTTP Error ${e.code()}: $errorBody")
+                return false
+            }
+            
+            val xmlString = response.string()
+            Log.d("SNRepository", "Respuesta XML recibida: $xmlString")
+            
+            if (xmlString.contains("true", ignoreCase = true) || xmlString.contains(">1<")) {
+                userMatricula = matricula
+                Log.d("SNRepository", "✅ Autenticación exitosa")
+                return true
+            }
+            
+            Log.d("SNRepository", "❌ Autenticación fallida")
+            false
+        } catch (e: Exception) {
+            Log.e("SNRepository", "❌ Error en autenticación: ${e.message}", e)
+            false
+        }
+    }
+
+    override suspend fun profile(matricula: String): ProfileStudent {
+        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE PERFIL =====")
+        
+        return try {
+            val soapBody = bodyperfil
+            Log.d("SNRepository", "Enviando petición SOAP de perfil...")
+            
+            val response = try {
+                snApiService.perfil(soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                Log.e("SNRepository", "❌ Error HTTP ${e.code()}")
+                return ProfileStudent(matricula = matricula, nombre = "Error")
+            }
+
+            val xmlString = response.string()
+            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
+            
+            // Extraer el resultado XML/JSON
+            var resultText = Regex("<getAlumnoAcademicoResult>(.*?)</getAlumnoAcademicoResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1) ?: ""
+            
+            if (resultText.isEmpty()) {
+                Log.e("SNRepository", "No se encontró resultado en la respuesta")
+                return ProfileStudent(matricula = matricula, nombre = "Perfil no disponible")
+            }
+            
+            // Limpiar el contenido si está codificado
+            var processed = resultText
+            if (processed.contains("&lt;")) {
+                processed = processed.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+            }
+            
+            Log.d("SNRepository", "Contenido procesado: ${processed.take(100)}...")
+            
+            // Intentar parsear como JSON
+            if (processed.trim().startsWith("{")) {
+                try {
+                    val json = Json.parseToJsonElement(processed.trim()).jsonObject
+                    val nombre = json["nombre"]?.jsonPrimitive?.content ?: "No disponible"
+                    val carrera = json["carrera"]?.jsonPrimitive?.content ?: "No disponible"
+                    val semestre = json["semestre"]?.jsonPrimitive?.content ?: "0"
+                    val promedio = json["promedio"]?.jsonPrimitive?.content ?: "0.0"
+                    
+                    Log.d("SNRepository", "✅ Perfil parseado: $nombre - $carrera")
+                    
+                    return ProfileStudent(
+                        matricula = matricula,
+                        nombre = nombre,
+                        carrera = carrera,
+                        semestre = semestre,
+                        promedio = promedio,
+                        estado = "Activo",
+                        statusMatricula = "Activo"
+                    )
+                } catch (e: Exception) {
+                    Log.e("SNRepository", "Error parseando JSON: ${e.message}")
+                }
+            }
+            
+            ProfileStudent(matricula = matricula, nombre = "Perfil obtenido")
+            
+        } catch (e: Exception) {
+            Log.e("SNRepository", "❌ Error obteniendo perfil: ${e.message}", e)
+            ProfileStudent(matricula = matricula, nombre = "Error de conexión")
+        }
+    }
+
+    override suspend fun getMatricula(): String {
+        return userMatricula
+    }
+}
