@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -27,10 +28,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
+
+// Colores (paleta)
+private val DarkBlue = Color(0xFF1B396A)
+private val CoolGray = Color(0xFF807E82)
+private val DarkText = Color(0xFF000000)
+private val LightBackground = Color(0xFFF5F5F5)
 
 @Composable
 fun LoginScreen(
@@ -84,6 +92,7 @@ fun LoginFormScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(LightBackground)
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -91,7 +100,9 @@ fun LoginFormScreen(
         Text(
             text = "SICENET",
             fontSize = 32.sp,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 32.dp),
+            color = DarkBlue,
+            fontWeight = FontWeight.Bold
         )
         
         Card(
@@ -101,7 +112,8 @@ fun LoginFormScreen(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
-            )
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -154,12 +166,13 @@ fun LoginFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
-                        enabled = !isLoading
+                        enabled = !isLoading,
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = DarkBlue)
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.height(24.dp))
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.height(24.dp))
                         } else {
-                            Text("Ingresar")
+                            Text("Ingresar", color = Color.White)
                         }
                     }
                 }
