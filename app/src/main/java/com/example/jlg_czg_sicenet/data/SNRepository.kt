@@ -24,6 +24,7 @@ class NetworSNRepository(
 ) : SNRepository {
     
     private var userMatricula: String = ""
+    private var sessionCookie: String? = null
 
     private fun escapeXml(input: String): String {
         return input.replace("&", "&amp;")
@@ -48,23 +49,34 @@ class NetworSNRepository(
                 snApiService.acceso(soapBody.toRequestBody("text/xml;charset=utf-8".toMediaType()))
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
-                Log.e("SNRepository", "❌ HTTP Error ${e.code()}: $errorBody")
+                Log.e("SNRepository", "HTTP Error ${e.code()}: $errorBody")
                 return false
             }
-            
-            val xmlString = response.string()
+
+            // Capturar cookie de sesión desde encabezados
+            try {
+                val cookieHeader = response.headers()["Set-Cookie"]
+                if (!cookieHeader.isNullOrEmpty()) {
+                    sessionCookie = cookieHeader.split(';')[0]
+                    Log.d("SNRepository", "Cookie de sesión capturada: $sessionCookie")
+                }
+            } catch (e: Exception) {
+                Log.w("SNRepository", "No se pudo leer Set-Cookie: ${e.message}")
+            }
+
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
             Log.d("SNRepository", "Respuesta XML recibida: $xmlString")
             
             if (xmlString.contains("true", ignoreCase = true) || xmlString.contains(">1<")) {
                 userMatricula = matricula
-                Log.d("SNRepository", "✅ Autenticación exitosa")
+                Log.d("SNRepository", " Autenticación exitosa")
                 return true
             }
             
-            Log.d("SNRepository", "❌ Autenticación fallida")
+            Log.d("SNRepository", " Autenticación fallida")
             false
         } catch (e: Exception) {
-            Log.e("SNRepository", "❌ Error en autenticación: ${e.message}", e)
+            Log.e("SNRepository", " Error en autenticación: ${e.message}", e)
             false
         }
     }
@@ -77,26 +89,32 @@ class NetworSNRepository(
             Log.d("SNRepository", "Enviando petición SOAP de perfil...")
             
             val response = try {
-                snApiService.perfil(soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+                snApiService.perfil(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             } catch (e: HttpException) {
-                Log.e("SNRepository", "❌ Error HTTP ${e.code()}")
+                Log.e("SNRepository", "Error HTTP ${e.code()}")
                 return ProfileStudent(matricula = matricula, nombre = "Error")
             }
 
-            val xmlString = response.string()
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
             Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
             
-            // Extraer el resultado XML/JSON
-            var resultText = Regex("<getAlumnoAcademicoResult>(.*?)</getAlumnoAcademicoResult>", RegexOption.DOT_MATCHES_ALL)
-                .find(xmlString)?.groupValues?.get(1) ?: ""
+            // Extraer el resultado XML/JSON (soporta la variante WithLineamiento)
+            var resultText: String? = null
+            resultText = Regex("<getAlumnoAcademicoWithLineamientoResult>(.*?)</getAlumnoAcademicoWithLineamientoResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1)
+            if (resultText.isNullOrEmpty()) {
+                resultText = Regex("<getAlumnoAcademicoResult>(.*?)</getAlumnoAcademicoResult>", RegexOption.DOT_MATCHES_ALL)
+                    .find(xmlString)?.groupValues?.get(1)
+            }
+            var result = resultText ?: ""
             
-            if (resultText.isEmpty()) {
+            if (result.isEmpty()) {
                 Log.e("SNRepository", "No se encontró resultado en la respuesta")
                 return ProfileStudent(matricula = matricula, nombre = "Perfil no disponible")
             }
             
             // Limpiar el contenido si está codificado
-            var processed = resultText
+            var processed = result
             if (processed.contains("&lt;")) {
                 processed = processed.replace("&lt;", "<")
                     .replace("&gt;", ">")
@@ -111,19 +129,37 @@ class NetworSNRepository(
                     val json = Json.parseToJsonElement(processed.trim()).jsonObject
                     val nombre = json["nombre"]?.jsonPrimitive?.content ?: "No disponible"
                     val carrera = json["carrera"]?.jsonPrimitive?.content ?: "No disponible"
-                    val semestre = json["semestre"]?.jsonPrimitive?.content ?: "0"
+                    // semActual viene en la respuesta con clave "semActual"
+                    val semActual = json["semActual"]?.jsonPrimitive?.content ?: json["semestre"]?.jsonPrimitive?.content ?: "0"
                     val promedio = json["promedio"]?.jsonPrimitive?.content ?: "0.0"
-                    
-                    Log.d("SNRepository", "✅ Perfil parseado: $nombre - $carrera")
-                    
+                    val especialidad = json["especialidad"]?.jsonPrimitive?.content ?: ""
+                    val cdtsReunidos = json["cdtosAcumulados"]?.jsonPrimitive?.content ?: json["cdtosAcumulados"]?.toString() ?: ""
+                    val cdtsActuales = json["cdtosActuales"]?.jsonPrimitive?.content ?: ""
+                    val inscrito = json["inscrito"]?.jsonPrimitive?.content ?: ""
+                    val estatusAcademico = json["estatus"]?.jsonPrimitive?.content ?: ""
+                    val reinscripcionFecha = json["fechaReins"]?.jsonPrimitive?.content ?: ""
+                    val sinAdeudos = json["adeudo"]?.jsonPrimitive?.content ?: ""
+
+                    Log.d("SNRepository", "Perfil parseado: $nombre - $carrera")
+
                     return ProfileStudent(
-                        matricula = matricula,
+                        matricula = json["matricula"]?.jsonPrimitive?.content ?: matricula,
                         nombre = nombre,
+                        apellidos = "",
                         carrera = carrera,
-                        semestre = semestre,
+                        semestre = semActual,
                         promedio = promedio,
-                        estado = "Activo",
-                        statusMatricula = "Activo"
+                        estado = estatusAcademico,
+                        statusMatricula = if (inscrito.equals("true", true)) "Activo" else "Inactivo",
+                        especialidad = especialidad,
+                        cdtsReunidos = cdtsReunidos,
+                        cdtsActuales = cdtsActuales,
+                        semActual = semActual,
+                        inscrito = inscrito,
+                        estatusAcademico = estatusAcademico,
+                        estatusAlumno = "",
+                        reinscripcionFecha = reinscripcionFecha,
+                        sinAdeudos = sinAdeudos
                     )
                 } catch (e: Exception) {
                     Log.e("SNRepository", "Error parseando JSON: ${e.message}")
@@ -133,7 +169,7 @@ class NetworSNRepository(
             ProfileStudent(matricula = matricula, nombre = "Perfil obtenido")
             
         } catch (e: Exception) {
-            Log.e("SNRepository", "❌ Error obteniendo perfil: ${e.message}", e)
+            Log.e("SNRepository", "Error obteniendo perfil: ${e.message}", e)
             ProfileStudent(matricula = matricula, nombre = "Error de conexión")
         }
     }

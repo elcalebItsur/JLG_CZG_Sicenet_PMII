@@ -119,7 +119,6 @@ private fun ProfileDetailScreen(
                     Divider()
                     ProfileInfoRow(label = "Matrícula", value = profile.matricula)
                     ProfileInfoRow(label = "Nombre", value = profile.nombre)
-                    ProfileInfoRow(label = "Apellidos", value = profile.apellidos)
                 }
             }
 
@@ -135,10 +134,12 @@ private fun ProfileDetailScreen(
                     Text("Información Académica", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Divider()
                     ProfileInfoRow(label = "Carrera", value = profile.carrera)
-                    ProfileInfoRow(label = "Semestre", value = profile.semestre)
-                    ProfileInfoRow(label = "Promedio", value = profile.promedio)
-                    ProfileInfoRow(label = "Estado", value = profile.estado)
-                    ProfileInfoRow(label = "Status Matrícula", value = profile.statusMatricula)
+                    ProfileInfoRow(label = "Semestre Actual", value = profile.semActual)
+                    ProfileInfoRow(label = "Especialidad", value = profile.especialidad)
+                    ProfileInfoRow(label = "Créditos Acumulados", value = profile.cdtsReunidos)
+                    ProfileInfoRow(label = "Créditos Actuales", value = profile.cdtsActuales)
+                    ProfileInfoRow(label = "Lineamiento", value = profile.estatusAcademico)
+                    ProfileInfoRow(label = "Inscrito", value = profile.inscrito)
                 }
             }
         }
