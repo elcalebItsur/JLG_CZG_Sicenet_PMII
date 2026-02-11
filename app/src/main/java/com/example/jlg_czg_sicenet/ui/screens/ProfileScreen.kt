@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,7 +42,7 @@ private val LightBackground = Color(0xFFF5F5F5)
 @Composable
 fun ProfileScreen(
     profileUiState: ProfileUiState,
-    onBackClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     onLoadProfile: (String) -> Unit,
     matricula: String,
     modifier: Modifier = Modifier
@@ -60,14 +60,14 @@ fun ProfileScreen(
         is ProfileUiState.Success -> {
             ProfileDetailScreen(
                 profile = profileUiState.profile,
-                onBackClick = onBackClick,
+                onLogoutClick = onLogoutClick,
                 modifier = modifier
             )
         }
         is ProfileUiState.Error -> {
             ErrorScreen(
                 error = profileUiState.message,
-                onBackClick = onBackClick,
+                onBackClick = onLogoutClick,
                 modifier = modifier
             )
         }
@@ -92,7 +92,7 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 @Composable
 private fun ProfileDetailScreen(
     profile: ProfileStudent,
-    onBackClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -100,8 +100,8 @@ private fun ProfileDetailScreen(
             TopAppBar(
                 title = { Text("Mi Perfil", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.White)
+                    IconButton(onClick = onLogoutClick) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBlue)

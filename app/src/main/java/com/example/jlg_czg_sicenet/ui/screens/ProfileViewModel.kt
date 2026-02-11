@@ -42,6 +42,10 @@ class ProfileViewModel(private val snRepository: SNRepository) : ViewModel() {
         }
     }
 
+    fun logout() {
+        snRepository.logout()
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

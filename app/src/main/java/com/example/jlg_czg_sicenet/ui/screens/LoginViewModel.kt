@@ -39,6 +39,10 @@ class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
     fun updateContrasenia(newValue: String) {
         contrasenia = newValue
     }
+
+    fun resetState() {
+        loginUiState = LoginUiState.Idle
+    }
     
     fun login() {
         if (matricula.isBlank() || contrasenia.isBlank()) {

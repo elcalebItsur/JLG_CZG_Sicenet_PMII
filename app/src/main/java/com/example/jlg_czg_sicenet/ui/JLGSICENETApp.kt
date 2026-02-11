@@ -37,6 +37,7 @@ fun JLGSICENETApp() {
                     }
                 },
                 onResetForm = {
+                    loginViewModel.resetState()
                     loginViewModel.updateMatricula("")
                     loginViewModel.updateContrasenia("")
                 }
@@ -49,7 +50,8 @@ fun JLGSICENETApp() {
             
             ProfileScreen(
                 profileUiState = profileViewModel.profileUiState,
-                onBackClick = {
+                onLogoutClick = {
+                    profileViewModel.logout()
                     navController.navigate("login") {
                         popUpTo("login") { inclusive = true }
                     }

@@ -17,6 +17,7 @@ interface SNRepository {
     suspend fun acceso(matricula: String, contrasenia: String): Boolean
     suspend fun profile(matricula: String): ProfileStudent
     suspend fun getMatricula(): String
+    fun logout()
 }
 
 class NetworSNRepository(
@@ -176,5 +177,11 @@ class NetworSNRepository(
 
     override suspend fun getMatricula(): String {
         return userMatricula
+    }
+
+    override fun logout() {
+        userMatricula = ""
+        sessionCookie = null
+        Log.d("SNRepository", "Sesión cerrada: Datos limpiados")
     }
 }
