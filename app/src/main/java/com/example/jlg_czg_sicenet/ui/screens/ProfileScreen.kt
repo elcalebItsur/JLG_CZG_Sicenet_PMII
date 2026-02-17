@@ -45,6 +45,10 @@ fun ProfileScreen(
     onLogoutClick: () -> Unit,
     onLoadProfile: (String) -> Unit,
     matricula: String,
+    onNavigateToAcademicLoad: () -> Unit,
+    onNavigateToKardex: () -> Unit,
+    onNavigateToGradesByUnit: () -> Unit,
+    onNavigateToFinalGrades: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (profileUiState) {
@@ -61,6 +65,10 @@ fun ProfileScreen(
             ProfileDetailScreen(
                 profile = profileUiState.profile,
                 onLogoutClick = onLogoutClick,
+                onNavigateToAcademicLoad = onNavigateToAcademicLoad,
+                onNavigateToKardex = onNavigateToKardex,
+                onNavigateToGradesByUnit = onNavigateToGradesByUnit,
+                onNavigateToFinalGrades = onNavigateToFinalGrades,
                 modifier = modifier
             )
         }
@@ -93,6 +101,10 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 private fun ProfileDetailScreen(
     profile: ProfileStudent,
     onLogoutClick: () -> Unit,
+    onNavigateToAcademicLoad: () -> Unit,
+    onNavigateToKardex: () -> Unit,
+    onNavigateToGradesByUnit: () -> Unit,
+    onNavigateToFinalGrades: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -172,6 +184,49 @@ private fun ProfileDetailScreen(
                     ProfileInfoRow(label = "Créditos Acumulados", value = profile.cdtsReunidos)
                     ProfileInfoRow(label = "Créditos Actuales", value = profile.cdtsActuales)
                     ProfileInfoRow(label = "Inscrito", value = convertBooleanToText(profile.inscrito))
+                }
+            }
+
+            // Menú de funcionalidades académicas
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Funcionalidades Académicas",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkBlue
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DarkBlue, shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                            .padding(2.dp)
+                    ) {}
+
+                    // Botones del menú
+                    MenuButton(
+                        text = "Carga Académica",
+                        onClick = onNavigateToAcademicLoad
+                    )
+                    MenuButton(
+                        text = "Kardex",
+                        onClick = onNavigateToKardex
+                    )
+                    MenuButton(
+                        text = "Calificaciones por Unidad",
+                        onClick = onNavigateToGradesByUnit
+                    )
+                    MenuButton(
+                        text = "Calificaciones Finales",
+                        onClick = onNavigateToFinalGrades
+                    )
                 }
             }
         }
@@ -268,6 +323,26 @@ private fun ErrorScreen(
         ) {
             Text("Atrás", color = Color.White)
         }
+    }
+}
+
+@Composable
+private fun MenuButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = DarkBlue)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

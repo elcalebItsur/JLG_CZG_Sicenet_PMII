@@ -1,6 +1,7 @@
 package com.example.jlg_czg_sicenet.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Text
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -57,8 +58,36 @@ fun JLGSICENETApp() {
                     }
                 },
                 onLoadProfile = { profileViewModel.loadProfile(it) },
-                matricula = matricula
+                matricula = matricula,
+                onNavigateToAcademicLoad = { navController.navigate("academic_load/$matricula") },
+                onNavigateToKardex = { navController.navigate("kardex/$matricula") },
+                onNavigateToGradesByUnit = { navController.navigate("grades_by_unit/$matricula") },
+                onNavigateToFinalGrades = { navController.navigate("final_grades/$matricula") }
             )
+        }
+
+        composable("academic_load/{matricula}") { backStackEntry ->
+            val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
+            // TODO: Implement AcademicLoadScreen
+            Text("Carga Académica - Matrícula: $matricula")
+        }
+
+        composable("kardex/{matricula}") { backStackEntry ->
+            val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
+            // TODO: Implement KardexScreen
+            Text("Kardex - Matrícula: $matricula")
+        }
+
+        composable("grades_by_unit/{matricula}") { backStackEntry ->
+            val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
+            // TODO: Implement GradesByUnitScreen
+            Text("Calificaciones por Unidad - Matrícula: $matricula")
+        }
+
+        composable("final_grades/{matricula}") { backStackEntry ->
+            val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
+            // TODO: Implement FinalGradesScreen
+            Text("Calificaciones Finales - Matrícula: $matricula")
         }
     }
 }
