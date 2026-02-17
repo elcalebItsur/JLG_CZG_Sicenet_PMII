@@ -5,6 +5,7 @@ import com.example.jlg_czg_sicenet.data.local.LocalRepository
 import com.example.jlg_czg_sicenet.data.local.RoomLocalRepository
 import com.example.jlg_czg_sicenet.data.local.SicenetDatabase
 import com.example.jlg_czg_sicenet.network.SICENETWService
+import com.example.jlg_czg_sicenet.workers.SyncManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -13,6 +14,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 interface AppContainer {
     val snRepository: SNRepository
     val localRepository: LocalRepository
+    val syncManager: SyncManager
 }
 
 class DefaultAppContainer(applicationContext: Context) : AppContainer {
@@ -56,5 +58,9 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
 
     override val localRepository: LocalRepository by lazy {
         RoomLocalRepository(SicenetDatabase.getDatabase(applicationContext))
+    }
+
+    override val syncManager: SyncManager by lazy {
+        SyncManager(applicationContext)
     }
 }

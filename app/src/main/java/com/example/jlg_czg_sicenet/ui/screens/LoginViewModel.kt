@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.jlg_czg_sicenet.JLGSICENETApplication
 import com.example.jlg_czg_sicenet.data.SNRepository
+import com.example.jlg_czg_sicenet.workers.SyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -21,7 +22,10 @@ sealed interface LoginUiState {
     data class Error(val message: String) : LoginUiState
 }
 
-class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
+class LoginViewModel(
+    private val snRepository: SNRepository,
+    private val syncManager: SyncManager
+) : ViewModel() {
     
     var loginUiState: LoginUiState by mutableStateOf(LoginUiState.Idle)
         private set
@@ -55,6 +59,8 @@ class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
             loginUiState = try {
                 val success = snRepository.acceso(matricula, contrasenia)
                 if (success) {
+                    // Trigger sync after successful login
+                    syncManager.schedulePostLoginSync(matricula)
                     LoginUiState.Success(matricula)
                 } else {
                     LoginUiState.Error("Matrícula o contraseña incorrecta")
@@ -69,7 +75,10 @@ class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = (this[APPLICATION_KEY] as JLGSICENETApplication)
-                LoginViewModel(snRepository = application.container.snRepository)
+                LoginViewModel(
+                    snRepository = application.container.snRepository,
+                    syncManager = application.container.syncManager
+                )
             }
         }
     }
