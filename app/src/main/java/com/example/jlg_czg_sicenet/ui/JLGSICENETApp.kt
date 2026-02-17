@@ -68,26 +68,34 @@ fun JLGSICENETApp() {
 
         composable("academic_load/{matricula}") { backStackEntry ->
             val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
-            // TODO: Implement AcademicLoadScreen
-            Text("Carga Académica - Matrícula: $matricula")
+            AcademicLoadScreen(
+                navController = navController,
+                matricula = matricula
+            )
         }
 
         composable("kardex/{matricula}") { backStackEntry ->
             val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
-            // TODO: Implement KardexScreen
-            Text("Kardex - Matrícula: $matricula")
+            KardexScreen(
+                navController = navController,
+                matricula = matricula
+            )
         }
 
         composable("grades_by_unit/{matricula}") { backStackEntry ->
             val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
-            // TODO: Implement GradesByUnitScreen
-            Text("Calificaciones por Unidad - Matrícula: $matricula")
+            GradesByUnitScreen(
+                navController = navController,
+                matricula = matricula
+            )
         }
 
         composable("final_grades/{matricula}") { backStackEntry ->
             val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
-            // TODO: Implement FinalGradesScreen
-            Text("Calificaciones Finales - Matrícula: $matricula")
+            FinalGradesScreen(
+                navController = navController,
+                matricula = matricula
+            )
         }
     }
 }
