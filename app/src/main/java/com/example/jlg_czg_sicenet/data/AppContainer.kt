@@ -1,6 +1,9 @@
 package com.example.jlg_czg_sicenet.data
 
 import android.content.Context
+import com.example.jlg_czg_sicenet.data.local.LocalRepository
+import com.example.jlg_czg_sicenet.data.local.RoomLocalRepository
+import com.example.jlg_czg_sicenet.data.local.SicenetDatabase
 import com.example.jlg_czg_sicenet.network.SICENETWService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -9,6 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 interface AppContainer {
     val snRepository: SNRepository
+    val localRepository: LocalRepository
 }
 
 class DefaultAppContainer(applicationContext: Context) : AppContainer {
@@ -48,5 +52,9 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
 
     override val snRepository: SNRepository by lazy {
         NetworSNRepository(snRetrofit.create(SICENETWService::class.java))
+    }
+
+    override val localRepository: LocalRepository by lazy {
+        RoomLocalRepository(SicenetDatabase.getDatabase(applicationContext))
     }
 }

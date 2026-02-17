@@ -6,6 +6,10 @@ import com.example.jlg_czg_sicenet.model.Usuario
 import com.example.jlg_czg_sicenet.network.SICENETWService
 import com.example.jlg_czg_sicenet.network.bodyacceso
 import com.example.jlg_czg_sicenet.network.bodyperfil
+import com.example.jlg_czg_sicenet.network.bodyCargaAcademica
+import com.example.jlg_czg_sicenet.network.bodyKardex
+import com.example.jlg_czg_sicenet.network.bodyCalifUnidades
+import com.example.jlg_czg_sicenet.network.bodyCalifFinal
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -16,6 +20,10 @@ import retrofit2.HttpException
 interface SNRepository {
     suspend fun acceso(matricula: String, contrasenia: String): Boolean
     suspend fun profile(matricula: String): ProfileStudent
+    suspend fun getCargaAcademica(): String
+    suspend fun getKardex(): String
+    suspend fun getCalifUnidades(): String
+    suspend fun getCalifFinal(): String
     suspend fun getMatricula(): String
     fun logout()
 }
@@ -172,6 +180,178 @@ class NetworSNRepository(
         } catch (e: Exception) {
             Log.e("SNRepository", "Error obteniendo perfil: ${e.message}", e)
             ProfileStudent(matricula = matricula, nombre = "Error de conexión")
+        }
+    }
+
+    override suspend fun getCargaAcademica(): String {
+        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE CARGA ACADÉMICA =====")
+
+        return try {
+            val soapBody = bodyCargaAcademica
+            Log.d("SNRepository", "Enviando petición SOAP de carga académica...")
+
+            val response = try {
+                snApiService.cargaAcademica(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                Log.e("SNRepository", "Error HTTP ${e.code()}")
+                return ""
+            }
+
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
+            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
+
+            // Extraer el resultado XML
+            val resultText = Regex("<getCargaAcademicaByAlumnoResult>(.*?)</getCargaAcademicaByAlumnoResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1) ?: ""
+
+            if (resultText.isEmpty()) {
+                Log.e("SNRepository", "No se encontró resultado en la respuesta")
+                return ""
+            }
+
+            // Limpiar el contenido si está codificado
+            var processed = resultText
+            if (processed.contains("&lt;")) {
+                processed = processed.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+            }
+
+            Log.d("SNRepository", "Carga académica obtenida exitosamente")
+            processed
+
+        } catch (e: Exception) {
+            Log.e("SNRepository", "Error obteniendo carga académica: ${e.message}", e)
+            ""
+        }
+    }
+
+    override suspend fun getKardex(): String {
+        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE KARDEX =====")
+
+        return try {
+            val soapBody = bodyKardex
+            Log.d("SNRepository", "Enviando petición SOAP de kardex...")
+
+            val response = try {
+                snApiService.kardex(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                Log.e("SNRepository", "Error HTTP ${e.code()}")
+                return ""
+            }
+
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
+            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
+
+            // Extraer el resultado XML
+            val resultText = Regex("<getAllKardexConPromedioByAlumnoResult>(.*?)</getAllKardexConPromedioByAlumnoResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1) ?: ""
+
+            if (resultText.isEmpty()) {
+                Log.e("SNRepository", "No se encontró resultado en la respuesta")
+                return ""
+            }
+
+            // Limpiar el contenido si está codificado
+            var processed = resultText
+            if (processed.contains("&lt;")) {
+                processed = processed.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+            }
+
+            Log.d("SNRepository", "Kardex obtenido exitosamente")
+            processed
+
+        } catch (e: Exception) {
+            Log.e("SNRepository", "Error obteniendo kardex: ${e.message}", e)
+            ""
+        }
+    }
+
+    override suspend fun getCalifUnidades(): String {
+        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE CALIFICACIONES POR UNIDADES =====")
+
+        return try {
+            val soapBody = bodyCalifUnidades
+            Log.d("SNRepository", "Enviando petición SOAP de calificaciones por unidades...")
+
+            val response = try {
+                snApiService.califUnidades(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                Log.e("SNRepository", "Error HTTP ${e.code()}")
+                return ""
+            }
+
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
+            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
+
+            // Extraer el resultado XML
+            val resultText = Regex("<getCalifUnidadesByAlumnoResult>(.*?)</getCalifUnidadesByAlumnoResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1) ?: ""
+
+            if (resultText.isEmpty()) {
+                Log.e("SNRepository", "No se encontró resultado en la respuesta")
+                return ""
+            }
+
+            // Limpiar el contenido si está codificado
+            var processed = resultText
+            if (processed.contains("&lt;")) {
+                processed = processed.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+            }
+
+            Log.d("SNRepository", "Calificaciones por unidades obtenidas exitosamente")
+            processed
+
+        } catch (e: Exception) {
+            Log.e("SNRepository", "Error obteniendo calificaciones por unidades: ${e.message}", e)
+            ""
+        }
+    }
+
+    override suspend fun getCalifFinal(): String {
+        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE CALIFICACIONES FINALES =====")
+
+        return try {
+            val soapBody = bodyCalifFinal
+            Log.d("SNRepository", "Enviando petición SOAP de calificaciones finales...")
+
+            val response = try {
+                snApiService.califFinal(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            } catch (e: HttpException) {
+                Log.e("SNRepository", "Error HTTP ${e.code()}")
+                return ""
+            }
+
+            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
+            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
+
+            // Extraer el resultado XML
+            val resultText = Regex("<getAllCalifFinalByAlumnosResult>(.*?)</getAllCalifFinalByAlumnosResult>", RegexOption.DOT_MATCHES_ALL)
+                .find(xmlString)?.groupValues?.get(1) ?: ""
+
+            if (resultText.isEmpty()) {
+                Log.e("SNRepository", "No se encontró resultado en la respuesta")
+                return ""
+            }
+
+            // Limpiar el contenido si está codificado
+            var processed = resultText
+            if (processed.contains("&lt;")) {
+                processed = processed.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+            }
+
+            Log.d("SNRepository", "Calificaciones finales obtenidas exitosamente")
+            processed
+
+        } catch (e: Exception) {
+            Log.e("SNRepository", "Error obteniendo calificaciones finales: ${e.message}", e)
+            ""
         }
     }
 
