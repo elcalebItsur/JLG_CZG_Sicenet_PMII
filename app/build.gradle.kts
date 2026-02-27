@@ -56,7 +56,11 @@ dependencies {
     
     // SICENET SOAP WebService
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.retrofit2:converter-simplexml:2.9.0") {
+        exclude(group = "stax", module = "stax-api")
+        exclude(group = "stax", module = "stax")
+        exclude(group = "xpp3", module = "xpp3")
+    }
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation("org.simpleframework:simple-xml:2.7.1")

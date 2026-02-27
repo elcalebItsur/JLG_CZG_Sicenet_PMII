@@ -1,15 +1,13 @@
 package com.example.jlg_czg_sicenet.network
 
+import com.example.jlg_czg_sicenet.model.EnvelopeSobreAcceso
+import com.example.jlg_czg_sicenet.model.EnvelopeSobreAlumno
 import okhttp3.RequestBody
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
-import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Header
-import retrofit2.http.Url
-import retrofit2.http.Streaming
 
 val bodyacceso =
     """
@@ -40,16 +38,12 @@ interface SICENETWService {
       "SOAPAction: \"http://tempuri.org/accesoLogin\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun acceso(@Body soap: RequestBody): Response<ResponseBody>
+    suspend fun acceso(@Body soap: RequestBody): Response<EnvelopeSobreAcceso>
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
       "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun perfil(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<ResponseBody>
-
-    @GET("/frmPlataformaAlumno.aspx")
-    @Streaming
-    suspend fun plataforma(): ResponseBody
+    suspend fun perfil(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeSobreAlumno>
 }  

@@ -5,7 +5,7 @@ import com.example.jlg_czg_sicenet.network.SICENETWService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.simplexml.SimpleXmlConverterFactory
 
 interface AppContainer {
     val snRepository: SNRepository
@@ -40,7 +40,7 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
 
     private val snRetrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(SimpleXmlConverterFactory.createNonStrict())
             .baseUrl(baseUrlSN)
             .client(client)
             .build()

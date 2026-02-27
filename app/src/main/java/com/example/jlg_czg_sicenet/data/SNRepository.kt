@@ -65,10 +65,19 @@ class NetworSNRepository(
                 Log.w("SNRepository", "No se pudo leer Set-Cookie: ${e.message}")
             }
 
-            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
-            Log.d("SNRepository", "Respuesta XML recibida: $xmlString")
-            
-            if (xmlString.contains("true", ignoreCase = true) || xmlString.contains(">1<")) {
+            // Acceder directamente al objeto deserializado
+            val envelope = response.body()
+            val result = envelope?.body?.accesoLoginResponse?.accesoLoginResult
+
+            Log.d("SNRepository", "Resultado de acceso: $result")
+
+            val isSuccess = result != null && (
+                result.equals("true", ignoreCase = true) || 
+                result == "1" || 
+                result.contains("\"acceso\":true", ignoreCase = true)
+            )
+
+            if (isSuccess) {
                 userMatricula = matricula
                 Log.d("SNRepository", " Autenticación exitosa")
                 return true
@@ -96,25 +105,23 @@ class NetworSNRepository(
                 return ProfileStudent(matricula = matricula, nombre = "Error")
             }
 
-            val xmlString = response.body()?.string() ?: response.errorBody()?.string() ?: ""
-            Log.d("SNRepository", "Respuesta recibida: ${xmlString.take(100)}...")
-            
-            // Extraer el resultado XML/JSON (soporta la variante WithLineamiento)
-            var resultText: String? = null
-            resultText = Regex("<getAlumnoAcademicoWithLineamientoResult>(.*?)</getAlumnoAcademicoWithLineamientoResult>", RegexOption.DOT_MATCHES_ALL)
-                .find(xmlString)?.groupValues?.get(1)
-            if (resultText.isNullOrEmpty()) {
-                resultText = Regex("<getAlumnoAcademicoResult>(.*?)</getAlumnoAcademicoResult>", RegexOption.DOT_MATCHES_ALL)
-                    .find(xmlString)?.groupValues?.get(1)
-            }
-            var result = resultText ?: ""
-            
+            // Acceder al objeto deserializado directamente
+            val envelope = response.body()
+            val body = envelope?.body
+
+            // Obtener el resultado desde el objeto (soporta WithLineamiento y sin)
+            val result = body?.getAlumnoAcademicoWithLineamientoResponse?.getAlumnoAcademicoWithLineamientoResult
+                ?: body?.getAlumnoAcademicoResponse?.getAlumnoAcademicoResult
+                ?: ""
+
+            Log.d("SNRepository", "Resultado obtenido: ${result.take(100)}...")
+
             if (result.isEmpty()) {
                 Log.e("SNRepository", "No se encontró resultado en la respuesta")
                 return ProfileStudent(matricula = matricula, nombre = "Perfil no disponible")
             }
             
-            // Limpiar el contenido si está codificado
+            // Limpiar el contenido si está codificado en entidades HTML
             var processed = result
             if (processed.contains("&lt;")) {
                 processed = processed.replace("&lt;", "<")
@@ -124,13 +131,12 @@ class NetworSNRepository(
             
             Log.d("SNRepository", "Contenido procesado: ${processed.take(100)}...")
             
-            // Intentar parsear como JSON
+            // Parsear como JSON si el contenido es JSON
             if (processed.trim().startsWith("{")) {
                 try {
                     val json = Json.parseToJsonElement(processed.trim()).jsonObject
                     val nombre = json["nombre"]?.jsonPrimitive?.content ?: "No disponible"
                     val carrera = json["carrera"]?.jsonPrimitive?.content ?: "No disponible"
-                    // semActual viene en la respuesta con clave "semActual"
                     val semActual = json["semActual"]?.jsonPrimitive?.content ?: json["semestre"]?.jsonPrimitive?.content ?: "0"
                     val promedio = json["promedio"]?.jsonPrimitive?.content ?: "0.0"
                     val especialidad = json["especialidad"]?.jsonPrimitive?.content ?: ""

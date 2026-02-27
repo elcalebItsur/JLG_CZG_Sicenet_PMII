@@ -9,37 +9,28 @@ import org.simpleframework.xml.Root
 // ============ ACCESO LOGIN RESPONSE ============
 
 @Serializable
-@Root(name = "soap:Envelope", strict = false)
-@NamespaceList(
-    Namespace(reference = "http://www.w3.org/2001/XMLSchema-instance", prefix = "xsi"),
-    Namespace(reference = "http://www.w3.org/2001/XMLSchema", prefix = "xsd"),
-    Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
-)
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
 data class EnvelopeSobreAcceso(
-    @field:Element(name = "soap:Body", required = false)
-    @param:Element(name = "soap:Body", required = false)
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
     val body: BodyAccesoResponse? = null
 )
 
 @Serializable
-@Root(name = "soap:Body", strict = false)
-@NamespaceList(
-    Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/"),
-    Namespace(reference = "http://tempuri.org/")
-)
+@Root(name = "Body", strict = false)
 data class BodyAccesoResponse(
-    @Element(name = "accesoLoginResponse", required = false)
+    @field:Element(name = "accesoLoginResponse", required = false)
+    @param:Element(name = "accesoLoginResponse", required = false)
     @Namespace(reference = "http://tempuri.org/")
     val accesoLoginResponse: AccesoLoginResponse? = null
 )
 
 @Serializable
 @Root(name = "accesoLoginResponse", strict = false)
-@NamespaceList(
-    Namespace(reference = "http://tempuri.org/")
-)
 data class AccesoLoginResponse(
-    @Element(name = "accesoLoginResult", required = false)
+    @field:Element(name = "accesoLoginResult", required = false)
+    @param:Element(name = "accesoLoginResult", required = false)
     @Namespace(reference = "http://tempuri.org/")
     val accesoLoginResult: String? = null
 )
@@ -47,29 +38,39 @@ data class AccesoLoginResponse(
 // ============ GET ALUMNO ACADEMICO RESPONSE ============
 
 @Serializable
-@Root(name = "soap:Envelope", strict = false)
-@NamespaceList(
-    Namespace(reference = "http://www.w3.org/2001/XMLSchema-instance", prefix = "xsi"),
-    Namespace(reference = "http://www.w3.org/2001/XMLSchema", prefix = "xsd"),
-    Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
-)
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
 data class EnvelopeSobreAlumno(
-    @field:Element(name = "soap:Body", required = false)
-    @param:Element(name = "soap:Body", required = false)
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
     val body: BodyAlumnoResponse? = null
 )
 
 @Serializable
-@Root(name = "soap:Body", strict = false)
+@Root(name = "Body", strict = false)
 data class BodyAlumnoResponse(
-    @Element(name = "getAlumnoAcademicoResponse", required = false)
+    @field:Element(name = "getAlumnoAcademicoWithLineamientoResponse", required = false)
+    @param:Element(name = "getAlumnoAcademicoWithLineamientoResponse", required = false)
+    val getAlumnoAcademicoWithLineamientoResponse: AlumnoAcademicoWithLineamientoResponse? = null,
+
+    @field:Element(name = "getAlumnoAcademicoResponse", required = false)
+    @param:Element(name = "getAlumnoAcademicoResponse", required = false)
     val getAlumnoAcademicoResponse: AlumnoAcademicoResponse? = null
+)
+
+@Serializable
+@Root(name = "getAlumnoAcademicoWithLineamientoResponse", strict = false)
+data class AlumnoAcademicoWithLineamientoResponse(
+    @field:Element(name = "getAlumnoAcademicoWithLineamientoResult", required = false)
+    @param:Element(name = "getAlumnoAcademicoWithLineamientoResult", required = false)
+    val getAlumnoAcademicoWithLineamientoResult: String? = null
 )
 
 @Serializable
 @Root(name = "getAlumnoAcademicoResponse", strict = false)
 data class AlumnoAcademicoResponse(
-    @Element(name = "getAlumnoAcademicoResult", required = false)
+    @field:Element(name = "getAlumnoAcademicoResult", required = false)
+    @param:Element(name = "getAlumnoAcademicoResult", required = false)
     val getAlumnoAcademicoResult: String? = null
 )
 
