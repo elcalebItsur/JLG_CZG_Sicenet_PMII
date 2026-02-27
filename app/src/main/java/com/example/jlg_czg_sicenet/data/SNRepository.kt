@@ -1,11 +1,18 @@
 package com.example.jlg_czg_sicenet.data
 
 import android.util.Log
+import android.content.Context
+import androidx.work.*
+import com.example.jlg_czg_sicenet.data.local.AcademicDataEntity
+import com.example.jlg_czg_sicenet.data.local.SNLocalDao
+import com.example.jlg_czg_sicenet.data.local.toEntity
+import com.example.jlg_czg_sicenet.data.local.toModel
 import com.example.jlg_czg_sicenet.model.ProfileStudent
-import com.example.jlg_czg_sicenet.model.Usuario
-import com.example.jlg_czg_sicenet.network.SICENETWService
-import com.example.jlg_czg_sicenet.network.bodyacceso
-import com.example.jlg_czg_sicenet.network.bodyperfil
+import com.example.jlg_czg_sicenet.network.*
+import com.example.jlg_czg_sicenet.workers.SyncAcademicDataWorker
+import com.example.jlg_czg_sicenet.workers.SyncProfileWorker
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -16,16 +23,49 @@ import retrofit2.HttpException
 interface SNRepository {
     suspend fun acceso(matricula: String, contrasenia: String): Boolean
     suspend fun profile(matricula: String): ProfileStudent
+    fun getProfileFlow(matricula: String): Flow<ProfileStudent?>
+    
+    suspend fun getCargaAcademica(matricula: String): String
+    suspend fun getKardex(matricula: String): String
+    suspend fun getUnidades(matricula: String): String
+    suspend fun getFinales(matricula: String): String
+    
+    fun syncProfile(matricula: String)
+    fun syncAcademicData(matricula: String)
+    
+    fun getAcademicDataFlow(matricula: String, dataType: String): Flow<AcademicDataEntity?>
+    
     suspend fun getMatricula(): String
     fun logout()
 }
 
 class NetworSNRepository(
-    private val snApiService: SICENETWService
+    private val snApiService: SICENETWService,
+    private val snLocalDao: SNLocalDao,
+    private val context: Context
 ) : SNRepository {
     
     private var userMatricula: String = ""
     private var sessionCookie: String? = null
+    private val workManager = WorkManager.getInstance(context)
+
+    override fun syncProfile(matricula: String) {
+        val data = Data.Builder().putString("matricula", matricula).build()
+        val request = OneTimeWorkRequestBuilder<SyncProfileWorker>()
+            .setInputData(data)
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        workManager.enqueueUniqueWork("sync_profile_$matricula", ExistingWorkPolicy.REPLACE, request)
+    }
+
+    override fun syncAcademicData(matricula: String) {
+        val data = Data.Builder().putString("matricula", matricula).build()
+        val request = OneTimeWorkRequestBuilder<SyncAcademicDataWorker>()
+            .setInputData(data)
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        workManager.enqueueUniqueWork("sync_academic_$matricula", ExistingWorkPolicy.REPLACE, request)
+    }
 
     private fun escapeXml(input: String): String {
         return input.replace("&", "&amp;")
@@ -37,39 +77,25 @@ class NetworSNRepository(
 
     override suspend fun acceso(matricula: String, contrasenia: String): Boolean {
         Log.d("SNRepository", "===== INICIANDO AUTENTICACIÓN =====")
-        Log.d("SNRepository", "Matrícula: $matricula")
-        
         return try {
             val safeMatricula = escapeXml(matricula)
             val safeContrasenia = escapeXml(contrasenia)
             val soapBody = bodyacceso.format(safeMatricula.uppercase(), safeContrasenia)
             
-            Log.d("SNRepository", "Enviando SOAP Body...")
-            
             val response = try {
                 snApiService.acceso(soapBody.toRequestBody("text/xml;charset=utf-8".toMediaType()))
             } catch (e: HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                Log.e("SNRepository", "HTTP Error ${e.code()}: $errorBody")
                 return false
             }
 
-            // Capturar cookie de sesión desde encabezados
-            try {
-                val cookieHeader = response.headers()["Set-Cookie"]
-                if (!cookieHeader.isNullOrEmpty()) {
-                    sessionCookie = cookieHeader.split(';')[0]
-                    Log.d("SNRepository", "Cookie de sesión capturada: $sessionCookie")
-                }
-            } catch (e: Exception) {
-                Log.w("SNRepository", "No se pudo leer Set-Cookie: ${e.message}")
+            // Capturar cookie
+            val cookieHeader = response.headers()["Set-Cookie"]
+            if (!cookieHeader.isNullOrEmpty()) {
+                sessionCookie = cookieHeader.split(';')[0]
             }
 
-            // Acceder directamente al objeto deserializado
             val envelope = response.body()
             val result = envelope?.body?.accesoLoginResponse?.accesoLoginResult
-
-            Log.d("SNRepository", "Resultado de acceso: $result")
 
             val isSuccess = result != null && (
                 result.equals("true", ignoreCase = true) || 
@@ -79,115 +105,126 @@ class NetworSNRepository(
 
             if (isSuccess) {
                 userMatricula = matricula
-                Log.d("SNRepository", " Autenticación exitosa")
+                // Trigger sync workers as requested (Case A)
+                syncProfile(matricula)
+                syncAcademicData(matricula)
                 return true
             }
-            
-            Log.d("SNRepository", " Autenticación fallida")
             false
         } catch (e: Exception) {
-            Log.e("SNRepository", " Error en autenticación: ${e.message}", e)
             false
         }
     }
 
     override suspend fun profile(matricula: String): ProfileStudent {
-        Log.d("SNRepository", "===== INICIANDO OBTENCIÓN DE PERFIL =====")
-        
         return try {
-            val soapBody = bodyperfil
-            Log.d("SNRepository", "Enviando petición SOAP de perfil...")
-            
-            val response = try {
-                snApiService.perfil(sessionCookie, soapBody.toRequestBody("text/xml; charset=utf-8".toMediaType()))
-            } catch (e: HttpException) {
-                Log.e("SNRepository", "Error HTTP ${e.code()}")
-                return ProfileStudent(matricula = matricula, nombre = "Error")
-            }
-
-            // Acceder al objeto deserializado directamente
-            val envelope = response.body()
-            val body = envelope?.body
-
-            // Obtener el resultado desde el objeto (soporta WithLineamiento y sin)
+            val response = snApiService.perfil(sessionCookie, bodyperfil.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val body = response.body()?.body
             val result = body?.getAlumnoAcademicoWithLineamientoResponse?.getAlumnoAcademicoWithLineamientoResult
                 ?: body?.getAlumnoAcademicoResponse?.getAlumnoAcademicoResult
                 ?: ""
 
-            Log.d("SNRepository", "Resultado obtenido: ${result.take(100)}...")
-
-            if (result.isEmpty()) {
-                Log.e("SNRepository", "No se encontró resultado en la respuesta")
-                return ProfileStudent(matricula = matricula, nombre = "Perfil no disponible")
-            }
+            if (result.isEmpty()) return ProfileStudent(matricula = matricula)
             
-            // Limpiar el contenido si está codificado en entidades HTML
             var processed = result
             if (processed.contains("&lt;")) {
-                processed = processed.replace("&lt;", "<")
-                    .replace("&gt;", ">")
-                    .replace("&amp;", "&")
+                processed = processed.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
             }
             
-            Log.d("SNRepository", "Contenido procesado: ${processed.take(100)}...")
-            
-            // Parsear como JSON si el contenido es JSON
             if (processed.trim().startsWith("{")) {
-                try {
-                    val json = Json.parseToJsonElement(processed.trim()).jsonObject
-                    val nombre = json["nombre"]?.jsonPrimitive?.content ?: "No disponible"
-                    val carrera = json["carrera"]?.jsonPrimitive?.content ?: "No disponible"
-                    val semActual = json["semActual"]?.jsonPrimitive?.content ?: json["semestre"]?.jsonPrimitive?.content ?: "0"
-                    val promedio = json["promedio"]?.jsonPrimitive?.content ?: "0.0"
-                    val especialidad = json["especialidad"]?.jsonPrimitive?.content ?: ""
-                    val cdtsReunidos = json["cdtosAcumulados"]?.jsonPrimitive?.content ?: json["cdtosAcumulados"]?.toString() ?: ""
-                    val cdtsActuales = json["cdtosActuales"]?.jsonPrimitive?.content ?: ""
-                    val inscrito = json["inscrito"]?.jsonPrimitive?.content ?: ""
-                    val estatusAcademico = json["estatus"]?.jsonPrimitive?.content ?: ""
-                    val reinscripcionFecha = json["fechaReins"]?.jsonPrimitive?.content ?: ""
-                    val sinAdeudos = json["adeudo"]?.jsonPrimitive?.content ?: ""
-
-                    Log.d("SNRepository", "Perfil parseado: $nombre - $carrera")
-
-                    return ProfileStudent(
-                        matricula = json["matricula"]?.jsonPrimitive?.content ?: matricula,
-                        nombre = nombre,
-                        apellidos = "",
-                        carrera = carrera,
-                        semestre = semActual,
-                        promedio = promedio,
-                        estado = estatusAcademico,
-                        statusMatricula = if (inscrito.equals("true", true)) "Activo" else "Inactivo",
-                        especialidad = especialidad,
-                        cdtsReunidos = cdtsReunidos,
-                        cdtsActuales = cdtsActuales,
-                        semActual = semActual,
-                        inscrito = inscrito,
-                        estatusAcademico = estatusAcademico,
-                        estatusAlumno = "",
-                        reinscripcionFecha = reinscripcionFecha,
-                        sinAdeudos = sinAdeudos
-                    )
-                } catch (e: Exception) {
-                    Log.e("SNRepository", "Error parseando JSON: ${e.message}")
-                }
+                val json = Json.parseToJsonElement(processed.trim()).jsonObject
+                val profile = ProfileStudent(
+                    matricula = json["matricula"]?.jsonPrimitive?.content ?: matricula,
+                    nombre = json["nombre"]?.jsonPrimitive?.content ?: "",
+                    carrera = json["carrera"]?.jsonPrimitive?.content ?: "",
+                    semestre = json["semActual"]?.jsonPrimitive?.content ?: json["semestre"]?.jsonPrimitive?.content ?: "0",
+                    promedio = json["promedio"]?.jsonPrimitive?.content ?: "0",
+                    estado = json["estatus"]?.jsonPrimitive?.content ?: "",
+                    statusMatricula = if (json["inscrito"]?.jsonPrimitive?.content?.equals("true", true) == true) "Activo" else "Inactivo",
+                    especialidad = json["especialidad"]?.jsonPrimitive?.content ?: "",
+                    cdtsReunidos = json["cdtosAcumulados"]?.jsonPrimitive?.content ?: "",
+                    cdtsActuales = json["cdtosActuales"]?.jsonPrimitive?.content ?: "",
+                    semActual = json["semActual"]?.jsonPrimitive?.content ?: "",
+                    inscrito = json["inscrito"]?.jsonPrimitive?.content ?: "",
+                    estatusAcademico = json["estatus"]?.jsonPrimitive?.content ?: "",
+                    reinscripcionFecha = json["fechaReins"]?.jsonPrimitive?.content ?: "",
+                    sinAdeudos = json["adeudo"]?.jsonPrimitive?.content ?: ""
+                )
+                
+                // Guardar en local
+                snLocalDao.insertProfile(profile.toEntity())
+                return profile
             }
-            
-            ProfileStudent(matricula = matricula, nombre = "Perfil obtenido")
-            
+            ProfileStudent(matricula = matricula)
         } catch (e: Exception) {
-            Log.e("SNRepository", "Error obteniendo perfil: ${e.message}", e)
-            ProfileStudent(matricula = matricula, nombre = "Error de conexión")
+            snLocalDao.getProfile(matricula)?.toModel() ?: ProfileStudent(matricula = matricula)
         }
     }
 
-    override suspend fun getMatricula(): String {
-        return userMatricula
+    override fun getProfileFlow(matricula: String): Flow<ProfileStudent?> {
+        return snLocalDao.getProfileFlow(matricula).map { it?.toModel() }
     }
+
+    override suspend fun getCargaAcademica(matricula: String): String {
+        return try {
+            val response = snApiService.getCargaAcademica(sessionCookie, bodyCarga.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val result = response.body()?.body?.response?.result ?: ""
+            if (result.isNotEmpty()) {
+                snLocalDao.insertAcademicData(AcademicDataEntity(matricula, "CARGA", result))
+            }
+            result
+        } catch (e: Exception) {
+            snLocalDao.getAcademicData(matricula, "CARGA")?.data ?: ""
+        }
+    }
+
+    override suspend fun getKardex(matricula: String): String {
+        return try {
+            val response = snApiService.getKardex(sessionCookie, bodyKardex.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val result = response.body()?.body?.response?.result ?: ""
+            if (result.isNotEmpty()) {
+                snLocalDao.insertAcademicData(AcademicDataEntity(matricula, "KARDEX", result))
+            }
+            result
+        } catch (e: Exception) {
+            snLocalDao.getAcademicData(matricula, "KARDEX")?.data ?: ""
+        }
+    }
+
+    override suspend fun getUnidades(matricula: String): String {
+        return try {
+            val response = snApiService.getUnidades(sessionCookie, bodyUnidades.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val result = response.body()?.body?.response?.result ?: ""
+            if (result.isNotEmpty()) {
+                snLocalDao.insertAcademicData(AcademicDataEntity(matricula, "UNIDADES", result))
+            }
+            result
+        } catch (e: Exception) {
+            snLocalDao.getAcademicData(matricula, "UNIDADES")?.data ?: ""
+        }
+    }
+
+    override suspend fun getFinales(matricula: String): String {
+        return try {
+            val response = snApiService.getFinales(sessionCookie, bodyFinal.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val result = response.body()?.body?.response?.result ?: ""
+            if (result.isNotEmpty()) {
+                snLocalDao.insertAcademicData(AcademicDataEntity(matricula, "FINAL", result))
+            }
+            result
+        } catch (e: Exception) {
+            snLocalDao.getAcademicData(matricula, "FINAL")?.data ?: ""
+        }
+    }
+
+    override fun getAcademicDataFlow(matricula: String, dataType: String): Flow<AcademicDataEntity?> {
+        return snLocalDao.getAcademicDataFlow(matricula, dataType)
+    }
+
+    override suspend fun getMatricula(): String = userMatricula
 
     override fun logout() {
         userMatricula = ""
         sessionCookie = null
-        Log.d("SNRepository", "Sesión cerrada: Datos limpiados")
     }
 }

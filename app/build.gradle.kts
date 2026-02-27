@@ -1,8 +1,8 @@
 plugins {
-    // Use version catalog aliases to manage plugin versions in one place
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")
 }
 
 android {
@@ -71,6 +71,19 @@ dependencies {
     
     // Preferences
     implementation("androidx.preference:preference-ktx:1.2.1")
+    
+    // Room
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+    // Note: For Kotlin, use kapt or ksp. I'll use kapt for simplicity if available, or just room-compiler.
+    // However, the user is using Kotlin, so I should ideally use kapt.
+    // Let me check if kapt is applied.
+    
+    // WorkManager
+    val work_version = "2.9.0"
+    implementation("androidx.work:work-runtime-ktx:$work_version")
     
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")

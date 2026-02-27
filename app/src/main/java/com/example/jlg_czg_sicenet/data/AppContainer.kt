@@ -6,19 +6,30 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory
+import com.example.jlg_czg_sicenet.data.local.SNDatabase
+import com.example.jlg_czg_sicenet.data.local.SNLocalDao
 
 interface AppContainer {
     val snRepository: SNRepository
+    val snLocalDao: SNLocalDao
 }
 
 class DefaultAppContainer(applicationContext: Context) : AppContainer {
     private val baseUrlSN = "https://sicenet.itsur.edu.mx"
     
+    private val database: SNDatabase by lazy {
+        SNDatabase.getDatabase(applicationContext)
+    }
+
+    override val snLocalDao: SNLocalDao by lazy {
+        database.snDao()
+    }
+    
     private val client: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor()
         logging.level = HttpLoggingInterceptor.Level.BODY
         
-        val builder = OkHttpClient.Builder()
+        OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
                 val builder = originalRequest.newBuilder()
@@ -34,8 +45,6 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
             .addInterceptor(AddCookiesInterceptor(applicationContext))
             .addInterceptor(logging)
             .build()
-        
-        builder
     }
 
     private val snRetrofit: Retrofit by lazy {
@@ -47,6 +56,10 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
     }
 
     override val snRepository: SNRepository by lazy {
-        NetworSNRepository(snRetrofit.create(SICENETWService::class.java))
+        NetworSNRepository(
+            snApiService = snRetrofit.create(SICENETWService::class.java),
+            snLocalDao = snLocalDao,
+            context = applicationContext
+        )
     }
 }

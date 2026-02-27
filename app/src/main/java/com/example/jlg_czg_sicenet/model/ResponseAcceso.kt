@@ -3,7 +3,6 @@ package com.example.jlg_czg_sicenet.model
 import kotlinx.serialization.Serializable
 import org.simpleframework.xml.Element
 import org.simpleframework.xml.Namespace
-import org.simpleframework.xml.NamespaceList
 import org.simpleframework.xml.Root
 
 // ============ ACCESO LOGIN RESPONSE ============
@@ -35,7 +34,7 @@ data class AccesoLoginResponse(
     val accesoLoginResult: String? = null
 )
 
-// ============ GET ALUMNO ACADEMICO RESPONSE ============
+// ============ PROFILE / ALUMNO RESPONSE ============
 
 @Serializable
 @Root(name = "Envelope", strict = false)
@@ -74,7 +73,116 @@ data class AlumnoAcademicoResponse(
     val getAlumnoAcademicoResult: String? = null
 )
 
-// Clases auxiliares para parsear el DataSet XML del perfil
+// ============ CARGA ACADEMICA RESPONSE ============
+
+@Serializable
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
+data class EnvelopeCarga(
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
+    val body: BodyCarga? = null
+)
+
+@Serializable
+@Root(name = "Body", strict = false)
+data class BodyCarga(
+    @field:Element(name = "getCargaAcademicaByAlumnoResponse", required = false)
+    @param:Element(name = "getCargaAcademicaByAlumnoResponse", required = false)
+    val response: CargaResponse? = null
+)
+
+@Serializable
+@Root(name = "getCargaAcademicaByAlumnoResponse", strict = false)
+data class CargaResponse(
+    @field:Element(name = "getCargaAcademicaByAlumnoResult", required = false)
+    @param:Element(name = "getCargaAcademicaByAlumnoResult", required = false)
+    val result: String? = null
+)
+
+// ============ KARDEX RESPONSE ============
+
+@Serializable
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
+data class EnvelopeKardex(
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
+    val body: BodyKardex? = null
+)
+
+@Serializable
+@Root(name = "Body", strict = false)
+data class BodyKardex(
+    @field:Element(name = "getAllKardexConPromedioByAlumnoResponse", required = false)
+    @param:Element(name = "getAllKardexConPromedioByAlumnoResponse", required = false)
+    val response: KardexResponse? = null
+)
+
+@Serializable
+@Root(name = "getAllKardexConPromedioByAlumnoResponse", strict = false)
+data class KardexResponse(
+    @field:Element(name = "getAllKardexConPromedioByAlumnoResult", required = false)
+    @param:Element(name = "getAllKardexConPromedioByAlumnoResult", required = false)
+    val result: String? = null
+)
+
+// ============ CALIF UNIDADES RESPONSE ============
+
+@Serializable
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
+data class EnvelopeUnidades(
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
+    val body: BodyUnidades? = null
+)
+
+@Serializable
+@Root(name = "Body", strict = false)
+data class BodyUnidades(
+    @field:Element(name = "getCalifUnidadesByAlumnoResponse", required = false)
+    @param:Element(name = "getCalifUnidadesByAlumnoResponse", required = false)
+    val response: UnidadesResponse? = null
+)
+
+@Serializable
+@Root(name = "getCalifUnidadesByAlumnoResponse", strict = false)
+data class UnidadesResponse(
+    @field:Element(name = "getCalifUnidadesByAlumnoResult", required = false)
+    @param:Element(name = "getCalifUnidadesByAlumnoResult", required = false)
+    val result: String? = null
+)
+
+// ============ CALIF FINAL RESPONSE ============
+
+@Serializable
+@Root(name = "Envelope", strict = false)
+@Namespace(prefix = "soap", reference = "http://schemas.xmlsoap.org/soap/envelope/")
+data class EnvelopeFinal(
+    @field:Element(name = "Body", required = false)
+    @param:Element(name = "Body", required = false)
+    val body: BodyFinal? = null
+)
+
+@Serializable
+@Root(name = "Body", strict = false)
+data class BodyFinal(
+    @field:Element(name = "getAllCalifFinalByAlumnosResponse", required = false)
+    @param:Element(name = "getAllCalifFinalByAlumnosResponse", required = false)
+    val response: FinalResponse? = null
+)
+
+@Serializable
+@Root(name = "getAllCalifFinalByAlumnosResponse", strict = false)
+data class FinalResponse(
+    @field:Element(name = "getAllCalifFinalByAlumnosResult", required = false)
+    @param:Element(name = "getAllCalifFinalByAlumnosResult", required = false)
+    val result: String? = null
+)
+
+
+// Clases auxiliares para parsear el DataSet XML del perfil (si es necesario mas adelante)
 @Serializable
 @Root(name = "DataSet", strict = false)
 data class PerfilDataSet(
