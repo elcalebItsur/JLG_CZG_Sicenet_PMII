@@ -13,6 +13,7 @@ import com.example.jlg_czg_sicenet.JLGSICENETApplication
 import com.example.jlg_czg_sicenet.data.SNRepository
 import com.example.jlg_czg_sicenet.model.ProfileStudent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -31,13 +32,27 @@ class ProfileViewModel(private val snRepository: SNRepository) : ViewModel() {
     fun loadProfile(matricula: String) {
         viewModelScope.launch {
             profileUiState = ProfileUiState.Loading
-            profileUiState = try {
-                val profile = withContext(Dispatchers.IO) {
+            try {
+                // Primero mostrar cualquier perfil local guardado (si existe)
+                val local = withContext(Dispatchers.IO) {
+                    snRepository.getProfileFlow(matricula).first()
+                }
+                if (local != null) {
+                    profileUiState = ProfileUiState.Success(local)
+                }
+
+                // Luego intentar actualizar desde la red y persistir el resultado
+                val remote = withContext(Dispatchers.IO) {
                     snRepository.profile(matricula)
                 }
-                ProfileUiState.Success(profile)
+                profileUiState = ProfileUiState.Success(remote)
             } catch (e: Exception) {
-                ProfileUiState.Error("Error cargando perfil: ${e.message}")
+                // Si no había local, mostrar error; si había local, mantenerlo
+                if (profileUiState is ProfileUiState.Success) {
+                    // ya mostramos local
+                } else {
+                    profileUiState = ProfileUiState.Error("Error cargando perfil: ${e.message}")
+                }
             }
         }
     }

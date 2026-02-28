@@ -179,11 +179,24 @@ fun CargaTableRow(materia: MateriaCarga) {
             Text(text = materia.Grupo, modifier = Modifier.weight(1f))
             Text(text = materia.CreditosMateria.toString(), modifier = Modifier.weight(0.6f))
 
-            val schedule = listOf(
-                materia.Lunes, materia.Martes, materia.Miercoles, materia.Jueves, materia.Viernes, materia.Sabado
-            ).filterNotNull().filter { it.isNotBlank() }
-
-            Text(text = if (schedule.isEmpty()) "-" else schedule.joinToString(" • "), modifier = Modifier.weight(3f), maxLines = 2)
+            // Mostrar horario en columnas L-V para evitar concatenaciones ambiguas
+            Column(modifier = Modifier.weight(3f)) {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "L", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(text = "M", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(text = "Mi", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(text = "J", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(text = "V", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = materia.Lunes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                    Text(text = materia.Martes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                    Text(text = materia.Miercoles?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                    Text(text = materia.Jueves?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                    Text(text = materia.Viernes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+                }
+            }
         }
     }
 }
