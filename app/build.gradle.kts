@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt")
+    // Serialization plugin generates Kotlinx serializers for @Serializable classes
+    id("org.jetbrains.kotlin.plugin.serialization") version "${libs.versions.kotlin.get()}"
 }
 
 android {

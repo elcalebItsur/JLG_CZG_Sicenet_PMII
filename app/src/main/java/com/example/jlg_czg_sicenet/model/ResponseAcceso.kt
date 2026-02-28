@@ -89,6 +89,7 @@ data class EnvelopeCarga(
 data class BodyCarga(
     @field:Element(name = "getCargaAcademicaByAlumnoResponse", required = false)
     @param:Element(name = "getCargaAcademicaByAlumnoResponse", required = false)
+    @Namespace(reference = "http://tempuri.org/")
     val response: CargaResponse? = null
 )
 
@@ -116,6 +117,7 @@ data class EnvelopeKardex(
 data class BodyKardex(
     @field:Element(name = "getAllKardexConPromedioByAlumnoResponse", required = false)
     @param:Element(name = "getAllKardexConPromedioByAlumnoResponse", required = false)
+    @Namespace(reference = "http://tempuri.org/")
     val response: KardexResponse? = null
 )
 
@@ -143,6 +145,7 @@ data class EnvelopeUnidades(
 data class BodyUnidades(
     @field:Element(name = "getCalifUnidadesByAlumnoResponse", required = false)
     @param:Element(name = "getCalifUnidadesByAlumnoResponse", required = false)
+    @Namespace(reference = "http://tempuri.org/")
     val response: UnidadesResponse? = null
 )
 
@@ -170,6 +173,7 @@ data class EnvelopeFinal(
 data class BodyFinal(
     @field:Element(name = "getAllCalifFinalByAlumnosResponse", required = false)
     @param:Element(name = "getAllCalifFinalByAlumnosResponse", required = false)
+    @Namespace(reference = "http://tempuri.org/")
     val response: FinalResponse? = null
 )
 

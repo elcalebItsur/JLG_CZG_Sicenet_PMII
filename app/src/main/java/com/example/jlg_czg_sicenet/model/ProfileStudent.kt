@@ -31,27 +31,6 @@ data class Usuario(
 )
 
 @Serializable
-@Root(name = "MateriaKardex", strict = false)
-data class MateriaKardex(
-    @field:Element(name = "Materia", required = false)
-    @param:Element(name = "Materia", required = false)
-    val materia: String? = null,
-    
-    @field:Element(name = "Calificacion", required = false)
-    @param:Element(name = "Calificacion", required = false)
-    val calificacion: String? = null
-)
-
-@Serializable
-@Root(name = "MateriaCarga", strict = false)
-data class MateriaCarga(
-    @field:Element(name = "Materia", required = false)
-    @param:Element(name = "Materia", required = false)
-    val materia: String? = null
-)
-
-@Serializable
-@Root(name = "MateriaParcial", strict = false)
 data class MateriaParcial(
     val materia: String = "",
     val parciales: List<String> = emptyList()
