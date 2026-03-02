@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jlg_czg_sicenet.model.*
@@ -173,28 +175,62 @@ fun CargaTableContent(items: List<MateriaCarga>) {
 
 @Composable
 fun CargaTableRow(materia: MateriaCarga) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = materia.Materia, modifier = Modifier.weight(3f), maxLines = 2)
-            Text(text = materia.Grupo, modifier = Modifier.weight(1f))
-            Text(text = materia.CreditosMateria.toString(), modifier = Modifier.weight(0.6f))
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = materia.Materia,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            // Mostrar horario en columnas L-V para evitar concatenaciones ambiguas
-            Column(modifier = Modifier.weight(3f)) {
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "L", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text(text = "M", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text(text = "Mi", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text(text = "J", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text(text = "V", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Grupo: ${materia.Grupo}", fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(text = "Créditos: ${materia.CreditosMateria}", fontSize = 12.sp, modifier = Modifier.weight(1f))
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = materia.Lunes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
-                    Text(text = materia.Martes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
-                    Text(text = materia.Miercoles?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
-                    Text(text = materia.Jueves?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
-                    Text(text = materia.Viernes?.takeIf { it.isNotBlank() } ?: "-", modifier = Modifier.weight(1f), fontSize = 12.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column(modifier = Modifier.weight(3f)) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        listOf("L", "M", "Mi", "J", "V").forEach { dia ->
+                            Text(
+                                text = dia,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        val dias = listOf(materia.Lunes, materia.Martes, materia.Miercoles, materia.Jueves, materia.Viernes)
+                        dias.forEach { horario ->
+                            Text(
+                                text = horario?.takeIf { it.isNotBlank() } ?: "-",
+                                fontSize = 10.sp,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
