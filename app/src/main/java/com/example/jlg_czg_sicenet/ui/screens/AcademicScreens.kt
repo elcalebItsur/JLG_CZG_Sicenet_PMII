@@ -154,17 +154,6 @@ fun CargaContent(viewModel: AcademicViewModel, matricula: String) {
 @Composable
 fun CargaTableContent(items: List<MateriaCarga>) {
     Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Row(modifier = Modifier.padding(8.dp)) {
-                Text(text = "Materia", modifier = Modifier.weight(3f), fontWeight = FontWeight.Bold)
-                Text(text = "Grupo", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                Text(text = "Cdt", modifier = Modifier.weight(0.6f), fontWeight = FontWeight.Bold)
-                Text(text = "Horario", modifier = Modifier.weight(3f), fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         LazyColumn(contentPadding = PaddingValues(4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(items) { materia ->
                 CargaTableRow(materia)
