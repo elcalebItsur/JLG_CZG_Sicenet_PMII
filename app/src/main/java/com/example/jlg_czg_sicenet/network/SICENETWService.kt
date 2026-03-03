@@ -85,33 +85,33 @@ interface SICENETWService {
       "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun perfil(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeSobreAlumno>
+    suspend fun perfil(@Body soap: RequestBody): Response<EnvelopeSobreAlumno>
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getCargaAcademicaByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun getCargaAcademica(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeCarga>
+    suspend fun getCargaAcademica(@Body soap: RequestBody): Response<EnvelopeCarga>
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAllKardexConPromedioByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun getKardex(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeKardex>
+    suspend fun getKardex(@Body soap: RequestBody): Response<EnvelopeKardex>
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getCalifUnidadesByAlumno\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun getUnidades(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeUnidades>
+    suspend fun getUnidades(@Body soap: RequestBody): Response<EnvelopeUnidades>
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAllCalifFinalByAlumnos\""
     )
     @POST("/ws/wsalumnos.asmx")
-    suspend fun getFinales(@Header("Cookie") cookie: String?, @Body soap: RequestBody): Response<EnvelopeFinal>
+    suspend fun getFinales(@Body soap: RequestBody): Response<EnvelopeFinal>
 }  

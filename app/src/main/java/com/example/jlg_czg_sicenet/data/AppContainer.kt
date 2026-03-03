@@ -8,6 +8,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory
 import com.example.jlg_czg_sicenet.data.local.SNDatabase
 import com.example.jlg_czg_sicenet.data.local.SNLocalDao
+import com.franmontiel.persistentcookiejar.PersistentCookieJar
+import com.franmontiel.persistentcookiejar.cache.SetCookieCache
+import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
 
 interface AppContainer {
     val snRepository: SNRepository
@@ -28,8 +31,14 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
     private val client: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor()
         logging.level = HttpLoggingInterceptor.Level.BODY
-        
+
+        val cookieJar = PersistentCookieJar(
+            SetCookieCache(),
+            SharedPrefsCookiePersistor(applicationContext)
+        )
+
         OkHttpClient.Builder()
+            .cookieJar(cookieJar)
             .addInterceptor { chain ->
                 val originalRequest = chain.request()
                 val builder = originalRequest.newBuilder()
@@ -46,6 +55,7 @@ class DefaultAppContainer(applicationContext: Context) : AppContainer {
             .addInterceptor(logging)
             .build()
     }
+
 
     private val snRetrofit: Retrofit by lazy {
         Retrofit.Builder()

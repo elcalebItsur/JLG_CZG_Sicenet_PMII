@@ -52,7 +52,7 @@ class NetworSNRepository(
 ) : SNRepository {
     
     private var userMatricula: String = ""
-    private var sessionCookie: String? = null
+    // private var sessionCookie: String? = null
     private val workManager = WorkManager.getInstance(context)
     private val json = Json { 
         ignoreUnknownKeys = true 
@@ -196,10 +196,12 @@ class NetworSNRepository(
                 return false
             }
 
+            /*
             val cookieHeader = response.headers()["Set-Cookie"]
             if (!cookieHeader.isNullOrEmpty()) {
                 sessionCookie = cookieHeader.split(';')[0]
             }
+            */
 
             val envelope = response.body()
             val result = envelope?.body?.accesoLoginResponse?.accesoLoginResult
@@ -225,7 +227,7 @@ class NetworSNRepository(
 
     override suspend fun profile(matricula: String): ProfileStudent {
         return try {
-            val response = snApiService.perfil(sessionCookie, bodyperfil.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val response = snApiService.perfil(bodyperfil.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val body = response.body()?.body
             val result = body?.getAlumnoAcademicoWithLineamientoResponse?.getAlumnoAcademicoWithLineamientoResult
                 ?: body?.getAlumnoAcademicoResponse?.getAlumnoAcademicoResult
@@ -270,7 +272,7 @@ class NetworSNRepository(
     override suspend fun getCargaAcademica(matricula: String): List<MateriaCarga> {
         val m = normalizeMatricula(matricula)
         return try {
-            val response = snApiService.getCargaAcademica(sessionCookie, bodyCarga.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val response = snApiService.getCargaAcademica( bodyCarga.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Carga RAW: $result")
             if (result.isNotEmpty()) {
@@ -288,7 +290,7 @@ class NetworSNRepository(
     override suspend fun getKardex(matricula: String): KardexModel {
         val m = normalizeMatricula(matricula)
         return try {
-            val response = snApiService.getKardex(sessionCookie, bodyKardex.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val response = snApiService.getKardex(bodyKardex.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Kardex RAW: $result")
             if (result.isNotEmpty()) {
@@ -305,7 +307,7 @@ class NetworSNRepository(
     override suspend fun getUnidades(matricula: String): List<CalificacionUnidad> {
         val m = normalizeMatricula(matricula)
         return try {
-            val response = snApiService.getUnidades(sessionCookie, bodyUnidades.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val response = snApiService.getUnidades(bodyUnidades.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Unidades RAW: $result")
             if (result.isNotEmpty()) {
@@ -322,7 +324,7 @@ class NetworSNRepository(
     override suspend fun getFinales(matricula: String): List<CalificacionFinal> {
         val m = normalizeMatricula(matricula)
         return try {
-            val response = snApiService.getFinales(sessionCookie, bodyFinal.toRequestBody("text/xml; charset=utf-8".toMediaType()))
+            val response = snApiService.getFinales(bodyFinal.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Finales RAW: $result")
             if (result.isNotEmpty()) {
@@ -344,6 +346,5 @@ class NetworSNRepository(
 
     override fun logout() {
         userMatricula = ""
-        sessionCookie = null
     }
 }
