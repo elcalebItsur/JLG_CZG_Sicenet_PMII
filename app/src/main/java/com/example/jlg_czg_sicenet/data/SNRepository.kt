@@ -1,7 +1,6 @@
 package com.example.jlg_czg_sicenet.data
 
 import android.util.Log
-import android.content.Context
 import androidx.work.*
 import com.example.jlg_czg_sicenet.data.local.AcademicDataEntity
 import com.example.jlg_czg_sicenet.data.local.SNLocalDao
@@ -20,6 +19,7 @@ import kotlinx.serialization.decodeFromString
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import android.content.Context
 
 interface SNRepository {
     suspend fun acceso(matricula: String, contrasenia: String): Boolean
@@ -43,6 +43,12 @@ interface SNRepository {
     
     suspend fun getMatricula(): String
     fun logout()
+
+    fun isSessionSaved(): Boolean
+    fun saveSessionState(isLogged: Boolean)
+    fun saveMatricula(matricula: String)
+    fun getSavedMatricula(): String
+    suspend fun validateSession(): Boolean
 }
 
 class NetworSNRepository(
@@ -50,7 +56,7 @@ class NetworSNRepository(
     private val snLocalDao: SNLocalDao,
     private val context: Context
 ) : SNRepository {
-    
+
     private var userMatricula: String = ""
     // private var sessionCookie: String? = null
     private val workManager = WorkManager.getInstance(context)
@@ -216,6 +222,7 @@ class NetworSNRepository(
                 userMatricula = normalizeMatricula(matricula)
                 syncProfile(userMatricula)
                 syncAcademicData(userMatricula)
+                saveMatricula(matricula)
                 return true
             }
             false
@@ -347,4 +354,36 @@ class NetworSNRepository(
     override fun logout() {
         userMatricula = ""
     }
+
+    override fun isSessionSaved(): Boolean {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_logged", false)
+    }
+
+    override fun saveSessionState(isLogged: Boolean) {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("is_logged", isLogged).apply()
+    }
+
+    override fun saveMatricula(matricula: String) {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("matricula", matricula).apply()
+    }
+
+    override fun getSavedMatricula(): String {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("matricula", "") ?: ""
+    }
+
+    override suspend fun validateSession(): Boolean {
+        return try {
+            val m = getSavedMatricula()
+            profile(m)
+            true
+        } catch (e: Exception) {
+            saveSessionState(false)
+            false
+        }
+    }
+
 }

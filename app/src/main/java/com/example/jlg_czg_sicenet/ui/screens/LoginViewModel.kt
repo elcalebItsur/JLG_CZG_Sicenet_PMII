@@ -1,5 +1,6 @@
 package com.example.jlg_czg_sicenet.ui.screens
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ import com.example.jlg_czg_sicenet.JLGSICENETApplication
 import com.example.jlg_czg_sicenet.data.SNRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed interface LoginUiState {
     object Idle : LoginUiState
@@ -43,25 +45,30 @@ class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
     fun resetState() {
         loginUiState = LoginUiState.Idle
     }
-    
+
     fun login() {
         if (matricula.isBlank() || contrasenia.isBlank()) {
             loginUiState = LoginUiState.Error("Por favor ingresa matrícula y contraseña")
             return
         }
-        
-        viewModelScope.launch(Dispatchers.IO) {
+
+        viewModelScope.launch {
             loginUiState = LoginUiState.Loading
-            loginUiState = try {
-                val success = snRepository.acceso(matricula, contrasenia)
-                if (success) {
-                    LoginUiState.Success(matricula)
-                } else {
-                    LoginUiState.Error("Matrícula o contraseña incorrecta")
+
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    if (snRepository.acceso(matricula, contrasenia)) {
+                        snRepository.saveMatricula(matricula)
+                        LoginUiState.Success(matricula)
+                    } else {
+                        LoginUiState.Error("Matrícula o contraseña incorrecta")
+                    }
+                } catch (e: Exception) {
+                    LoginUiState.Error("Error de conexión: ${e.message}")
                 }
-            } catch (e: Exception) {
-                LoginUiState.Error("Error de conexión: ${e.message}")
             }
+
+            loginUiState = result
         }
     }
 

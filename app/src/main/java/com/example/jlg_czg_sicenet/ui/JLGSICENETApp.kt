@@ -5,13 +5,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.jlg_czg_sicenet.JLGSICENETApplication
+import com.example.jlg_czg_sicenet.data.SNRepository
 import com.example.jlg_czg_sicenet.ui.screens.*
 import kotlinx.coroutines.launch
 
@@ -20,51 +24,155 @@ fun JLGSICENETApp() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    
-    // El Drawer solo debe mostrarse si NO estamos en la pantalla de login
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "login"
     val isLoginScreen = currentRoute == "login"
 
-    if (isLoginScreen) {
-        LoginFlow(navController)
-    } else {
-        MainFlow(navController, drawerState, scope, currentRoute)
+    val context = LocalContext.current
+    val app = context.applicationContext as JLGSICENETApplication
+    val repository = app.container.snRepository
+
+
+
+
+
+    NavHost(
+        navController = navController,
+        startDestination = "startup"
+    ) {
+        composable("startup") {
+            StartupScreen(repository, navController)
+        }
+        composable("login") {
+            LoginFlow(navController)
+        }
+        composable("profile/{matricula}") { backStackEntry ->
+            val m = backStackEntry.arguments?.getString("matricula") ?: ""
+            val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory)
+            ProfileScreen(
+                profileUiState = profileViewModel.profileUiState,
+                onLogoutClick = { scope.launch { drawerState.open() } },
+                onLoadProfile = { profileViewModel.loadProfile(it) },
+                matricula = m
+            )
+        }
+
+
+        composable("carga/{matricula}") { backStackEntry ->
+            val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
+            val m = backStackEntry.arguments?.getString("matricula") ?: ""
+            AcademicDataScreen("Carga Académica", m, "CARGA", academicViewModel) {
+                scope.launch { drawerState.open() }
+            }
+        }
+
+        composable("kardex/{matricula}") { backStackEntry ->
+            val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
+            val m = backStackEntry.arguments?.getString("matricula") ?: ""
+            AcademicDataScreen("Kardex", m, "KARDEX", academicViewModel) {
+                scope.launch { drawerState.open() }
+            }
+        }
+
+        composable("unidades/{matricula}") { backStackEntry ->
+            val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
+            val m = backStackEntry.arguments?.getString("matricula") ?: ""
+            AcademicDataScreen("Calificaciones Unidad", m, "UNIDADES", academicViewModel) {
+                scope.launch { drawerState.open() }
+            }
+        }
+
+        composable("final/{matricula}") { backStackEntry ->
+            val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
+            val m = backStackEntry.arguments?.getString("matricula") ?: ""
+            AcademicDataScreen("Calificación Final", m, "FINAL", academicViewModel) {
+                scope.launch { drawerState.open() }
+            }
+        }
+    }
+}
+
+@Composable
+fun StartupScreen(
+    repository: SNRepository,
+    navController: NavHostController
+) {
+
+    LaunchedEffect(Unit) {
+
+        if (repository.isSessionSaved()) {
+
+            val valid = repository.validateSession()
+
+            if (valid) {
+
+                val matricula = repository.getSavedMatricula()
+
+                navController.navigate("profile/$matricula") {
+                    popUpTo("login") { inclusive = true }
+                }
+
+            } else {
+                navController.navigate("login") {
+                    popUpTo("startup") { inclusive = true }
+                }
+            }
+
+        } else {
+            navController.navigate("login") {
+                popUpTo("startup") { inclusive = true }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }
 
 @Composable
 fun LoginFlow(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
-            LoginScreen(
-                loginUiState = loginViewModel.loginUiState,
-                matricula = loginViewModel.matricula,
-                contrasenia = loginViewModel.contrasenia,
-                onMatriculaChange = { loginViewModel.updateMatricula(it) },
-                onContraseniaChange = { loginViewModel.updateContrasenia(it) },
-                onLoginClick = { loginViewModel.login() },
-                onLoginSuccess = { matricula ->
-                    navController.navigate("main/$matricula") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                onResetForm = {
-                    loginViewModel.resetState()
-                    loginViewModel.updateMatricula("")
-                    loginViewModel.updateContrasenia("")
-                }
-            )
+    val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
+
+    LoginScreen(
+        loginUiState = loginViewModel.loginUiState,
+        matricula = loginViewModel.matricula,
+        contrasenia = loginViewModel.contrasenia,
+        onMatriculaChange = { loginViewModel.updateMatricula(it) },
+        onContraseniaChange = { loginViewModel.updateContrasenia(it) },
+        onLoginClick = { loginViewModel.login() },
+        onLoginSuccess = { matricula ->
+            navController.navigate("profile/$matricula") {
+                popUpTo("startup") { inclusive = true }
+            }
+        },
+        onResetForm = {
+            loginViewModel.resetState()
+            loginViewModel.updateMatricula("")
+            loginViewModel.updateContrasenia("")
         }
-        // Ruta para ir al main
-        composable("main/{matricula}") { backStackEntry ->
-            val matricula = backStackEntry.arguments?.getString("matricula") ?: ""
-            // Esta ruta es solo un puente
-        }
-    }
+    )
 }
 
+@Composable
+fun MainFlowWrapper(
+    navController: NavHostController,
+    matricula: String
+) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    MainFlow(
+        navController = navController,
+        drawerState = drawerState,
+        scope = scope,
+        currentRoute = "profile/$matricula"
+    )
+}
 @Composable
 fun MainFlow(
     navController: NavHostController,
@@ -150,51 +258,6 @@ fun MainFlow(
             }
         }
     ) {
-        val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
-        
-        NavHost(navController = navController, startDestination = "profile/$matriculaParam") {
-            composable("profile/{matricula}") { backStackEntry ->
-                val m = backStackEntry.arguments?.getString("matricula") ?: ""
-                val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory)
-                ProfileScreen(
-                    profileUiState = profileViewModel.profileUiState,
-                    onLogoutClick = { scope.launch { drawerState.open() } }, // Cambiado para abrir menu
-                    onLoadProfile = { profileViewModel.loadProfile(it) },
-                    matricula = m
-                )
-            }
-            
-            composable("carga/{matricula}") { backStackEntry ->
-                val m = backStackEntry.arguments?.getString("matricula") ?: ""
-                AcademicDataScreen("Carga Académica", m, "CARGA", academicViewModel) {
-                    scope.launch { drawerState.open() }
-                }
-            }
-            
-            composable("kardex/{matricula}") { backStackEntry ->
-                val m = backStackEntry.arguments?.getString("matricula") ?: ""
-                AcademicDataScreen("Kardex", m, "KARDEX", academicViewModel) {
-                    scope.launch { drawerState.open() }
-                }
-            }
-            
-            composable("unidades/{matricula}") { backStackEntry ->
-                val m = backStackEntry.arguments?.getString("matricula") ?: ""
-                AcademicDataScreen("Calificaciones Unidad", m, "UNIDADES", academicViewModel) {
-                    scope.launch { drawerState.open() }
-                }
-            }
-            
-            composable("final/{matricula}") { backStackEntry ->
-                val m = backStackEntry.arguments?.getString("matricula") ?: ""
-                AcademicDataScreen("Calificación Final", m, "FINAL", academicViewModel) {
-                    scope.launch { drawerState.open() }
-                }
-            }
-            
-            composable("login") {
-                // Se maneja afuera
-            }
-        }
+
     }
 }
