@@ -1,5 +1,6 @@
 package com.example.jlg_czg_sicenet.ui
 
+import StartupViewModel
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -137,7 +138,8 @@ fun AppNavHost(
         startDestination = "startup"
     ) {
         composable("startup") {
-            StartupScreen(repository, navController)
+            val viewModel: StartupViewModel = viewModel(factory = StartupViewModel.Factory)
+            StartupScreen(viewModel, navController)
         }
         composable("login") {
             LoginFlow(navController)
@@ -189,40 +191,24 @@ fun AppNavHost(
 
 @Composable
 fun StartupScreen(
-    repository: SNRepository,
+    viewModel: StartupViewModel,
     navController: NavHostController
 ) {
 
     LaunchedEffect(Unit) {
-        val saved = repository.isSessionSaved()
-        Log.d("SESSION_DEBUG", "isSessionSaved = $saved")
 
-        if (saved) {
-            val valid = repository.validateSession()
-            Log.d("SESSION_DEBUG", "validateSession = $valid")
-            if (valid) {
+        when (val result = viewModel.checkSession()) {
 
-                val matricula = repository.getSavedMatricula()
-                Log.d("SESSION_DEBUG", "matricula = $matricula")
-
-                /*
-                navController.navigate("profile/$matricula") {
-                    popUpTo("login") { inclusive = true }
-                }
-                 */
-                navController.navigate("profile/$matricula") {
-                    popUpTo("startup") { inclusive = true }
-                }
-
-            } else {
-                navController.navigate("login") {
+            is StartupResult.Authenticated -> {
+                navController.navigate("profile/${result.matricula}") {
                     popUpTo("startup") { inclusive = true }
                 }
             }
 
-        } else {
-            navController.navigate("login") {
-                popUpTo("startup") { inclusive = true }
+            StartupResult.NotAuthenticated -> {
+                navController.navigate("login") {
+                    popUpTo("startup") { inclusive = true }
+                }
             }
         }
     }
@@ -234,7 +220,6 @@ fun StartupScreen(
         CircularProgressIndicator()
     }
 }
-
 @Composable
 fun LoginFlow(navController: NavHostController) {
     val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
