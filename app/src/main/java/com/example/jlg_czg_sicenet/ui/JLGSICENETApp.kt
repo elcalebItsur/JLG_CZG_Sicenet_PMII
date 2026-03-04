@@ -1,5 +1,6 @@
 package com.example.jlg_czg_sicenet.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,7 +28,9 @@ fun JLGSICENETApp() {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "login"
-    val isLoginScreen = currentRoute == "login"
+
+    //val isLoginScreen = currentRoute == "login"
+    val showDrawer = currentRoute != "login" && currentRoute != "startup"
 
     val context = LocalContext.current
     val app = context.applicationContext as JLGSICENETApplication
@@ -35,7 +38,8 @@ fun JLGSICENETApp() {
 
     val matriculaParam = currentRoute.split("/").lastOrNull() ?: ""
 
-    if (!isLoginScreen) {
+    if (showDrawer) {
+
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -103,6 +107,7 @@ fun JLGSICENETApp() {
                         selected = false,
                         onClick = {
                             scope.launch { drawerState.close() }
+                            repository.clearSession()
                             navController.navigate("login") {
                                 popUpTo(0) { inclusive = true }
                             }
@@ -189,17 +194,24 @@ fun StartupScreen(
 ) {
 
     LaunchedEffect(Unit) {
+        val saved = repository.isSessionSaved()
+        Log.d("SESSION_DEBUG", "isSessionSaved = $saved")
 
-        if (repository.isSessionSaved()) {
-
+        if (saved) {
             val valid = repository.validateSession()
-
+            Log.d("SESSION_DEBUG", "validateSession = $valid")
             if (valid) {
 
                 val matricula = repository.getSavedMatricula()
+                Log.d("SESSION_DEBUG", "matricula = $matricula")
 
+                /*
                 navController.navigate("profile/$matricula") {
                     popUpTo("login") { inclusive = true }
+                }
+                 */
+                navController.navigate("profile/$matricula") {
+                    popUpTo("startup") { inclusive = true }
                 }
 
             } else {

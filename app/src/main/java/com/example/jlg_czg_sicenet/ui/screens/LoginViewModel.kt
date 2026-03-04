@@ -59,6 +59,7 @@ class LoginViewModel(private val snRepository: SNRepository) : ViewModel() {
                 try {
                     if (snRepository.acceso(matricula, contrasenia)) {
                         snRepository.saveMatricula(matricula)
+                        snRepository.saveSession(matricula)
                         LoginUiState.Success(matricula)
                     } else {
                         LoginUiState.Error("Matrícula o contraseña incorrecta")

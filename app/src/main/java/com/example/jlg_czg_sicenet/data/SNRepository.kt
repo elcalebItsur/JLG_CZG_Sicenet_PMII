@@ -49,6 +49,8 @@ interface SNRepository {
     fun saveMatricula(matricula: String)
     fun getSavedMatricula(): String
     suspend fun validateSession(): Boolean
+    fun saveSession(matricula: String)
+    fun clearSession()
 }
 
 class NetworSNRepository(
@@ -365,6 +367,14 @@ class NetworSNRepository(
         prefs.edit().putBoolean("is_logged", isLogged).apply()
     }
 
+    override fun saveSession(matricula: String) {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("is_logged", true)
+            .putString("matricula", matricula)
+            .apply()
+    }
+
     override fun saveMatricula(matricula: String) {
         val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("matricula", matricula).apply()
@@ -373,6 +383,10 @@ class NetworSNRepository(
     override fun getSavedMatricula(): String {
         val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
         return prefs.getString("matricula", "") ?: ""
+    }
+    override fun clearSession() {
+        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
     }
 
     override suspend fun validateSession(): Boolean {
