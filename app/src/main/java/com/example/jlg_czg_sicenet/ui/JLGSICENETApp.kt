@@ -34,9 +34,45 @@ fun JLGSICENETApp() {
     val repository = app.container.snRepository
 
 
+    if (!isLoginScreen) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Text("Sicenet Menu", modifier = Modifier.padding(16.dp))
+                    HorizontalDivider()
 
+                    NavigationDrawerItem(
+                        label = { Text("Mi Perfil") },
+                        selected = currentRoute.startsWith("profile"),
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            val matricula = navBackStackEntry?.arguments?.getString("matricula") ?: ""
+                            navController.navigate("profile/$matricula") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
 
+                    // Agrega los demás items igual...
+                }
+            }
+        ) {
+            AppNavHost(navController, repository)
+        }
+    } else {
+        AppNavHost(navController, repository)
+    }
 
+}
+
+@Composable
+fun AppNavHost(
+    navController: NavHostController,
+    repository: SNRepository
+) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
     NavHost(
         navController = navController,
         startDestination = "startup"
