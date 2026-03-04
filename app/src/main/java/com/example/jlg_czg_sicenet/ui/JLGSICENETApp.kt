@@ -33,28 +33,82 @@ fun JLGSICENETApp() {
     val app = context.applicationContext as JLGSICENETApplication
     val repository = app.container.snRepository
 
+    val matriculaParam = currentRoute.split("/").lastOrNull() ?: ""
 
     if (!isLoginScreen) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet {
-                    Text("Sicenet Menu", modifier = Modifier.padding(16.dp))
+                    Text("Sicenet Menu", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
                     HorizontalDivider()
-
                     NavigationDrawerItem(
                         label = { Text("Mi Perfil") },
                         selected = currentRoute.startsWith("profile"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            val matricula = navBackStackEntry?.arguments?.getString("matricula") ?: ""
-                            navController.navigate("profile/$matricula") {
+                            navController.navigate("profile/$matriculaParam") {
                                 launchSingleTop = true
                             }
-                        }
+                        },
+                        icon = { Icon(Icons.Default.Person, contentDescription = null) }
                     )
-
-                    // Agrega los demás items igual...
+                    NavigationDrawerItem(
+                        label = { Text("Carga Académica") },
+                        selected = currentRoute.startsWith("carga"),
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("carga/$matriculaParam") {
+                                launchSingleTop = true
+                            }
+                        },
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = null) }
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Kardex") },
+                        selected = currentRoute.startsWith("kardex"),
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("kardex/$matriculaParam") {
+                                launchSingleTop = true
+                            }
+                        },
+                        icon = { Icon(Icons.Default.List, contentDescription = null) }
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Calificaciones Unidad") },
+                        selected = currentRoute.startsWith("unidades"),
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("unidades/$matriculaParam") {
+                                launchSingleTop = true
+                            }
+                        },
+                        icon = { Icon(Icons.Default.Info, contentDescription = null) }
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Calificación Final") },
+                        selected = currentRoute.startsWith("final"),
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("final/$matriculaParam") {
+                                launchSingleTop = true
+                            }
+                        },
+                        icon = { Icon(Icons.Default.CheckCircle, contentDescription = null) }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    NavigationDrawerItem(
+                        label = { Text("Cerrar Sesión") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) }
+                    )
                 }
             }
         ) {
@@ -93,7 +147,6 @@ fun AppNavHost(
                 matricula = m
             )
         }
-
 
         composable("carga/{matricula}") { backStackEntry ->
             val academicViewModel: AcademicViewModel = viewModel(factory = AcademicViewModel.Factory)
