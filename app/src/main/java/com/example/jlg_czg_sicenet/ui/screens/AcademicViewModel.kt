@@ -59,6 +59,8 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     private fun normalize(m: String) = m.trim().uppercase()
 
+    // Funciones para obtener los estados de los datos académicos
+
     @Suppress("UNCHECKED_CAST")
     fun getCargaFlow(matricula: String): StateFlow<List<MateriaCarga>> {
         val m = normalize(matricula)
@@ -68,6 +70,7 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
         } as StateFlow<List<MateriaCarga>>
     }
 
+    // Funciones para obtener los estados de los datos académicos
     @Suppress("UNCHECKED_CAST")
     fun getKardexFlow(matricula: String): StateFlow<KardexModel?> {
         val m = normalize(matricula)
@@ -77,6 +80,7 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
         } as StateFlow<KardexModel?>
     }
 
+    // Funciones para obtener los estados de los datos académicos
     @Suppress("UNCHECKED_CAST")
     fun getUnidadesFlow(matricula: String): StateFlow<List<CalificacionUnidad>> {
         val m = normalize(matricula)
@@ -106,15 +110,17 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     private fun isInvalid(m: String) = m.isEmpty() || m.contains("{") || m.contains("}")
 
+    // Funciones para cargar los datos de la API y actualizar los estados
     fun loadCarga(matricula: String) {
         val m = normalize(matricula)
         if (isInvalid(m)) return
-        viewModelScope.launch {
+        viewModelScope.launch { // Esto se dispara en LaunchedEffect al entrar a la pantalla, y también cuando el usuario toca el botón de recargar
             if (cargaUiState is AcademicUiState.Loading) return@launch
             cargaUiState = AcademicUiState.Loading
+            // Llamada a la API y actualización del estado
             try {
-                snRepository.getCargaAcademica(m)
-                cargaUiState = AcademicUiState.Success(Unit)
+                snRepository.getCargaAcademica(m) // API -> guarda carga en ROOM
+                cargaUiState = AcademicUiState.Success(Unit) // Carga exitosa
             } catch (e: Exception) {
                 Log.e("AcademicViewModel", "Error cargando carga ($m): ${e.message}")
                 cargaUiState = AcademicUiState.Error(e.message ?: "Error desconocido")

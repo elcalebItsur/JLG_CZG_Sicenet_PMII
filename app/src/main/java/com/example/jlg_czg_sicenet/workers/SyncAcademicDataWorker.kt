@@ -13,14 +13,15 @@ class SyncAcademicDataWorker(
     override suspend fun doWork(): Result {
         val application = applicationContext as JLGSICENETApplication
         val repository = application.container.snRepository
+        // Leer el valor de entrada (matricula)
         val matricula = inputData.getString("matricula") ?: return Result.failure()
 
         return try {
             // Sincronizar todo lo académico
-            repository.getCargaAcademica(matricula)
-            repository.getKardex(matricula)
-            repository.getUnidades(matricula)
-            repository.getFinales(matricula)
+            repository.getCargaAcademica(matricula) //API -> guarda carga en ROOM
+            repository.getKardex(matricula) //API -> guarda kardex en ROOM
+            repository.getUnidades(matricula) //API -> guarda unidades en ROOM
+            repository.getFinales(matricula) //API -> guarda finales en ROOM
             Result.success()
         } catch (e: Exception) {
             Result.retry()

@@ -31,8 +31,8 @@ interface SNRepository {
     suspend fun getUnidades(matricula: String): List<CalificacionUnidad>
     suspend fun getFinales(matricula: String): List<CalificacionFinal>
     
-    fun syncProfile(matricula: String)
-    fun syncAcademicData(matricula: String)
+    fun syncProfile(matricula: String) // Hace la llamada a la API y almacena los datos si la respuesta es exitosa
+    fun syncAcademicData(matricula: String) // Hace la llamada a la API y almacena los datos si la respuesta es exitosa
     
     fun getAcademicDataFlow(matricula: String, dataType: String): Flow<AcademicDataEntity?>
     
@@ -171,16 +171,19 @@ class NetworSNRepository(
             .setInputData(data)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
-        workManager.enqueueUniqueWork("sync_profile_$matricula", ExistingWorkPolicy.REPLACE, request)
+        workManager.enqueueUniqueWork("sync_profile_$matricula", ExistingWorkPolicy.REPLACE, request) // nombre unico para evitar duplicados
     }
 
+    // enqueueUniqueWork garantiza que solo se ejecute una instancia de la tarea encolada
+
+    // Llamada a la API y almacena los datos si la respuesta es exitosa
     override fun syncAcademicData(matricula: String) {
         val data = Data.Builder().putString("matricula", matricula).build()
         val request = OneTimeWorkRequestBuilder<SyncAcademicDataWorker>()
             .setInputData(data)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
-        workManager.enqueueUniqueWork("sync_academic_$matricula", ExistingWorkPolicy.REPLACE, request)
+        workManager.enqueueUniqueWork("sync_academic_$matricula", ExistingWorkPolicy.REPLACE, request) // nombre unico para evitar duplicados
     }
 
     private fun escapeXml(input: String): String {
@@ -220,11 +223,12 @@ class NetworSNRepository(
                 result.contains("\"acceso\":true", ignoreCase = true)
             )
 
+            // Guardar la sesión si la autenticación es exitosa
             if (isSuccess) {
-                userMatricula = normalizeMatricula(matricula)
-                syncProfile(userMatricula)
-                syncAcademicData(userMatricula)
-                saveMatricula(matricula)
+                userMatricula = normalizeMatricula(matricula) // Guarda la matrícula
+                syncProfile(userMatricula) // Llamada a la API y almacena los datos si la respuesta es exitosa
+                syncAcademicData(userMatricula) // Llamada a la API y almacena los datos si la respuesta es exitosa
+                saveMatricula(matricula)  // Guarda la matrícula
                 return true
             }
             false
@@ -281,15 +285,16 @@ class NetworSNRepository(
     override suspend fun getCargaAcademica(matricula: String): List<MateriaCarga> {
         val m = normalizeMatricula(matricula)
         return try {
+            // Con internet y respuesta exitosa, llama a la API y almacena los datos en la ROOM
             val response = snApiService.getCargaAcademica( bodyCarga.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Carga RAW: $result")
             if (result.isNotEmpty()) {
-                snLocalDao.insertAcademicData(AcademicDataEntity(m, "CARGA", result))
+                snLocalDao.insertAcademicData(AcademicDataEntity(m, "CARGA", result)) // Guarda
                 val cleaned = cleanJson(result)
                 json.decodeFromString<List<MateriaCarga>>(cleaned)
             } else emptyList()
-        } catch (e: Exception) {
+        } catch (e: Exception) { // Sin internet o error de conexión
             Log.e("SNRepository", "Error en getCargaAcademica: ${e.message}")
             val local = snLocalDao.getAcademicData(m, "CARGA")?.data
             if (local != null) try { json.decodeFromString(cleanJson(local)) } catch(e: Exception) { emptyList() } else emptyList()
@@ -299,14 +304,15 @@ class NetworSNRepository(
     override suspend fun getKardex(matricula: String): KardexModel {
         val m = normalizeMatricula(matricula)
         return try {
+            // Con internet y respuesta exitosa, llama a la API y almacena los datos en la ROOM
             val response = snApiService.getKardex(bodyKardex.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Kardex RAW: $result")
             if (result.isNotEmpty()) {
-                snLocalDao.insertAcademicData(AcademicDataEntity(m, "KARDEX", result))
+                snLocalDao.insertAcademicData(AcademicDataEntity(m, "KARDEX", result)) // Guarda
                 json.decodeFromString<KardexModel>(cleanJson(result))
             } else KardexModel()
-        } catch (e: Exception) {
+        } catch (e: Exception) { // Sin internet o error de conexión
             Log.e("SNRepository", "Error en getKardex: ${e.message}")
             val local = snLocalDao.getAcademicData(m, "KARDEX")?.data
             if (local != null) try { json.decodeFromString(cleanJson(local)) } catch(e: Exception) { KardexModel() } else KardexModel()
@@ -316,14 +322,15 @@ class NetworSNRepository(
     override suspend fun getUnidades(matricula: String): List<CalificacionUnidad> {
         val m = normalizeMatricula(matricula)
         return try {
+            // Con internet y respuesta exitosa, llama a la API y almacena los datos en la ROOM
             val response = snApiService.getUnidades(bodyUnidades.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Unidades RAW: $result")
             if (result.isNotEmpty()) {
-                snLocalDao.insertAcademicData(AcademicDataEntity(m, "UNIDADES", result))
+                snLocalDao.insertAcademicData(AcademicDataEntity(m, "UNIDADES", result)) // Guarda
                 json.decodeFromString<List<CalificacionUnidad>>(cleanJson(result))
             } else emptyList()
-        } catch (e: Exception) {
+        } catch (e: Exception) { // Sin internet o error de conexión
             Log.e("SNRepository", "Error en getUnidades: ${e.message}")
             val local = snLocalDao.getAcademicData(m, "UNIDADES")?.data
             if (local != null) try { json.decodeFromString(cleanJson(local)) } catch(e: Exception) { emptyList() } else emptyList()
@@ -333,14 +340,15 @@ class NetworSNRepository(
     override suspend fun getFinales(matricula: String): List<CalificacionFinal> {
         val m = normalizeMatricula(matricula)
         return try {
+            // Con internet y respuesta exitosa, llama a la API y almacena los datos en la ROOM
             val response = snApiService.getFinales(bodyFinal.toRequestBody("text/xml; charset=utf-8".toMediaType()))
             val result = response.body()?.body?.response?.result ?: ""
             Log.d("SNRepository", "Finales RAW: $result")
             if (result.isNotEmpty()) {
-                snLocalDao.insertAcademicData(AcademicDataEntity(m, "FINAL", result))
+                snLocalDao.insertAcademicData(AcademicDataEntity(m, "FINAL", result)) // Guarda
                 json.decodeFromString<List<CalificacionFinal>>(cleanJson(result))
-            } else emptyList()
-        } catch (e: Exception) {
+            } else emptyList() // Si no hay datos, devuelve una lista vacía
+        } catch (e: Exception) { // Sin internet o error de conexión
             Log.e("SNRepository", "Error en getFinales: ${e.message}")
             val local = snLocalDao.getAcademicData(m, "FINAL")?.data
             if (local != null) try { json.decodeFromString(cleanJson(local)) } catch(e: Exception) { emptyList() } else emptyList()

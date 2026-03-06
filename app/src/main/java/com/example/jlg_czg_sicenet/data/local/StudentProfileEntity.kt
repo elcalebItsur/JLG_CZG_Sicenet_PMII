@@ -26,7 +26,7 @@ data class StudentProfileEntity(
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
-fun StudentProfileEntity.toModel(): ProfileStudent {
+fun StudentProfileEntity.toModel(): ProfileStudent { // Room -> Model UI
     return ProfileStudent(
         matricula = matricula,
         nombre = nombre,
@@ -48,7 +48,7 @@ fun StudentProfileEntity.toModel(): ProfileStudent {
     )
 }
 
-fun ProfileStudent.toEntity(lastUpdated: Long = System.currentTimeMillis()): StudentProfileEntity {
+fun ProfileStudent.toEntity(lastUpdated: Long = System.currentTimeMillis()): StudentProfileEntity { // Model UI -> Room
     return StudentProfileEntity(
         matricula = matricula,
         nombre = nombre,
@@ -70,3 +70,5 @@ fun ProfileStudent.toEntity(lastUpdated: Long = System.currentTimeMillis()): Stu
         lastUpdated = lastUpdated
     )
 }
+
+//Esto separa la capa de datos local de los modelos del negocio
