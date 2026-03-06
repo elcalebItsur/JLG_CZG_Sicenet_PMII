@@ -37,7 +37,9 @@ fun JLGSICENETApp() {
     val app = context.applicationContext as JLGSICENETApplication
     val repository = app.container.snRepository
 
-    val matriculaParam = currentRoute.split("/").lastOrNull() ?: ""
+    // IMPORTANTE: No usar currentRoute.split("/") porque devuelve "{matricula}" (el patrón)
+    // en lugar del valor real. Usamos la matrícula guardada en sesión.
+    val sessionMatricula = remember(currentRoute) { repository.getSavedMatricula() }
 
     if (showDrawer) {
 
@@ -52,7 +54,7 @@ fun JLGSICENETApp() {
                         selected = currentRoute.startsWith("profile"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("profile/$matriculaParam") {
+                            navController.navigate("profile/$sessionMatricula") {
                                 launchSingleTop = true
                             }
                         },
@@ -63,7 +65,7 @@ fun JLGSICENETApp() {
                         selected = currentRoute.startsWith("carga"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("carga/$matriculaParam") {
+                            navController.navigate("carga/$sessionMatricula") {
                                 launchSingleTop = true
                             }
                         },
@@ -74,7 +76,7 @@ fun JLGSICENETApp() {
                         selected = currentRoute.startsWith("kardex"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("kardex/$matriculaParam") {
+                            navController.navigate("kardex/$sessionMatricula") {
                                 launchSingleTop = true
                             }
                         },
@@ -85,7 +87,7 @@ fun JLGSICENETApp() {
                         selected = currentRoute.startsWith("unidades"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("unidades/$matriculaParam") {
+                            navController.navigate("unidades/$sessionMatricula") {
                                 launchSingleTop = true
                             }
                         },
@@ -96,7 +98,7 @@ fun JLGSICENETApp() {
                         selected = currentRoute.startsWith("final"),
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("final/$matriculaParam") {
+                            navController.navigate("final/$sessionMatricula") {
                                 launchSingleTop = true
                             }
                         },
@@ -148,10 +150,11 @@ fun AppNavHost(
             val m = backStackEntry.arguments?.getString("matricula") ?: ""
             val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.Factory)
             ProfileScreen(
-                profileUiState = profileViewModel.profileUiState,
+                profileUiState = ProfileUiState.Idle, // backward compat — unused
                 onLogoutClick = { scope.launch { drawerState.open() } },
                 onLoadProfile = { profileViewModel.loadProfile(it) },
-                matricula = m
+                matricula = m,
+                viewModel = profileViewModel
             )
         }
 
@@ -194,17 +197,13 @@ fun StartupScreen(
     viewModel: StartupViewModel,
     navController: NavHostController
 ) {
-
     LaunchedEffect(Unit) {
-
         when (val result = viewModel.checkSession()) {
-
             is StartupResult.Authenticated -> {
                 navController.navigate("profile/${result.matricula}") {
                     popUpTo("startup") { inclusive = true }
                 }
             }
-
             StartupResult.NotAuthenticated -> {
                 navController.navigate("login") {
                     popUpTo("startup") { inclusive = true }
@@ -220,6 +219,7 @@ fun StartupScreen(
         CircularProgressIndicator()
     }
 }
+
 @Composable
 fun LoginFlow(navController: NavHostController) {
     val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
@@ -242,108 +242,4 @@ fun LoginFlow(navController: NavHostController) {
             loginViewModel.updateContrasenia("")
         }
     )
-}
-
-@Composable
-fun MainFlowWrapper(
-    navController: NavHostController,
-    matricula: String
-) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    MainFlow(
-        navController = navController,
-        drawerState = drawerState,
-        scope = scope,
-        currentRoute = "profile/$matricula"
-    )
-}
-@Composable
-fun MainFlow(
-    navController: NavHostController,
-    drawerState: DrawerState,
-    scope: kotlinx.coroutines.CoroutineScope,
-    currentRoute: String
-) {
-    val matriculaParam = currentRoute.split("/").lastOrNull() ?: ""
-    
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text("Sicenet Menu", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
-                HorizontalDivider()
-                NavigationDrawerItem(
-                    label = { Text("Mi Perfil") },
-                    selected = currentRoute.startsWith("profile"),
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("profile/$matriculaParam") {
-                            launchSingleTop = true
-                        }
-                    },
-                    icon = { Icon(Icons.Default.Person, contentDescription = null) }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Carga Académica") },
-                    selected = currentRoute.startsWith("carga"),
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("carga/$matriculaParam") {
-                            launchSingleTop = true
-                        }
-                    },
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = null) }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Kardex") },
-                    selected = currentRoute.startsWith("kardex"),
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("kardex/$matriculaParam") {
-                            launchSingleTop = true
-                        }
-                    },
-                    icon = { Icon(Icons.Default.List, contentDescription = null) }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Calificaciones Unidad") },
-                    selected = currentRoute.startsWith("unidades"),
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("unidades/$matriculaParam") {
-                            launchSingleTop = true
-                        }
-                    },
-                    icon = { Icon(Icons.Default.Info, contentDescription = null) }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Calificación Final") },
-                    selected = currentRoute.startsWith("final"),
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("final/$matriculaParam") {
-                            launchSingleTop = true
-                        }
-                    },
-                    icon = { Icon(Icons.Default.CheckCircle, contentDescription = null) }
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                NavigationDrawerItem(
-                    label = { Text("Cerrar Sesión") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) }
-                )
-            }
-        }
-    ) {
-
-    }
 }

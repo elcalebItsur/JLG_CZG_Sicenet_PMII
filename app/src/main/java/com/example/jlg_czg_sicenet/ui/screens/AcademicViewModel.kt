@@ -89,8 +89,11 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
         } as StateFlow<AcademicDataEntity?>
     }
 
+    private fun isInvalid(m: String) = m.isEmpty() || m.contains("{") || m.contains("}")
+
     fun loadCarga(matricula: String) {
         val m = normalize(matricula)
+        if (isInvalid(m)) return
         viewModelScope.launch {
             if (cargaUiState is AcademicUiState.Loading) return@launch
             cargaUiState = AcademicUiState.Loading
@@ -106,6 +109,7 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     fun loadKardex(matricula: String) {
         val m = normalize(matricula)
+        if (isInvalid(m)) return
         viewModelScope.launch {
             if (kardexUiState is AcademicUiState.Loading) return@launch
             kardexUiState = AcademicUiState.Loading
@@ -121,6 +125,7 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     fun loadUnidades(matricula: String) {
         val m = normalize(matricula)
+        if (isInvalid(m)) return
         viewModelScope.launch {
             if (unidadesUiState is AcademicUiState.Loading) return@launch
             unidadesUiState = AcademicUiState.Loading
@@ -136,6 +141,7 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     fun loadFinales(matricula: String) {
         val m = normalize(matricula)
+        if (isInvalid(m)) return
         viewModelScope.launch {
             if (finalesUiState is AcademicUiState.Loading) return@launch
             finalesUiState = AcademicUiState.Loading

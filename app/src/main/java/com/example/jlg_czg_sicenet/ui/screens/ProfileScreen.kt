@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,33 +42,40 @@ private val LightBackground = Color(0xFFF5F5F5)
 
 @Composable
 fun ProfileScreen(
-    profileUiState: ProfileUiState,
+    profileUiState: ProfileUiState,   // kept for backward compat
     onLogoutClick: () -> Unit,
     onLoadProfile: (String) -> Unit,
     matricula: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel? = null
 ) {
-    when (profileUiState) {
-        is ProfileUiState.Idle -> {
-            LaunchedEffect(Unit) {
-                onLoadProfile(matricula)
-            }
-            LoadingScreen(modifier = modifier)
-        }
-        is ProfileUiState.Loading -> {
-            LoadingScreen(modifier = modifier)
-        }
-        is ProfileUiState.Success -> {
+    // Observa Room en tiempo real — se actualiza cuando el Worker guarda datos
+    val roomProfile = viewModel?.getProfileFlow(matricula)?.collectAsState()?.value
+    val syncState = viewModel?.syncState?.collectAsState()?.value
+
+    LaunchedEffect(matricula) {
+        onLoadProfile(matricula)
+    }
+
+    when {
+        roomProfile != null -> {
+            // Tenemos datos en Room → mostrar inmediatamente
             ProfileDetailScreen(
-                profile = profileUiState.profile,
+                profile = roomProfile,
                 onLogoutClick = onLogoutClick,
-                modifier = modifier
+                modifier = modifier,
+                isSyncing = syncState is ProfileUiState.Loading
             )
         }
-        is ProfileUiState.Error -> {
+        syncState is ProfileUiState.Loading || syncState is ProfileUiState.Idle || syncState == null -> {
+            // Sin datos locales aún, esperando sincronización
+            LoadingScreen(modifier = modifier)
+        }
+        else -> {
+            // Sin datos y sin internet
             ErrorScreen(
-                error = profileUiState.message,
-                onBackClick = onLogoutClick,
+                error = "Sin conexión a internet y no hay datos guardados.\nConéctate a internet para cargar tu perfil.",
+                onBackClick = { onLoadProfile(matricula) },
                 modifier = modifier
             )
         }
@@ -93,7 +101,8 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
 private fun ProfileDetailScreen(
     profile: ProfileStudent,
     onLogoutClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isSyncing: Boolean = false
 ) {
     Scaffold(
         topBar = {

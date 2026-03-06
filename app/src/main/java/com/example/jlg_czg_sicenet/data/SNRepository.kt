@@ -275,7 +275,7 @@ class NetworSNRepository(
     }
 
     override fun getProfileFlow(matricula: String): Flow<ProfileStudent?> {
-        return snLocalDao.getProfileFlow(matricula).map { it?.toModel() }
+        return snLocalDao.getProfileFlow(normalizeMatricula(matricula)).map { it?.toModel() }
     }
 
     override suspend fun getCargaAcademica(matricula: String): List<MateriaCarga> {

@@ -1,8 +1,6 @@
 package com.example.jlg_czg_sicenet.ui.screens
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -13,7 +11,10 @@ import com.example.jlg_czg_sicenet.JLGSICENETApplication
 import com.example.jlg_czg_sicenet.data.SNRepository
 import com.example.jlg_czg_sicenet.model.ProfileStudent
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,34 +26,60 @@ sealed interface ProfileUiState {
 }
 
 class ProfileViewModel(private val snRepository: SNRepository) : ViewModel() {
-    
-    var profileUiState: ProfileUiState by mutableStateOf(ProfileUiState.Idle)
-        private set
 
+    // Estado de red (sincronización activa)
+    private val _syncState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
+    val syncState: StateFlow<ProfileUiState> = _syncState
+
+    // Cache de flows por matrícula para evitar recreación en recomposición
+    private val _flowsCache = mutableMapOf<String, StateFlow<ProfileStudent?>>()
+
+    private fun normalize(m: String) = m.trim().uppercase()
+
+    /**
+     * Retorna un StateFlow que observa Room en tiempo real.
+     * Se actualiza automáticamente cuando el Worker guarda datos.
+     */
+    fun getProfileFlow(matricula: String): StateFlow<ProfileStudent?> {
+        val m = normalize(matricula)
+        return _flowsCache.getOrPut(m) {
+            snRepository.getProfileFlow(m)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        }
+    }
+
+    /**
+     * Dispara una sincronización con la red.
+     * Si hay internet: obtiene datos frescos y los guarda en Room.
+     * Si no hay internet: Room ya tiene los datos del Worker anterior.
+     */
     fun loadProfile(matricula: String) {
-        viewModelScope.launch {
-            profileUiState = ProfileUiState.Loading
-            try {
-                // Primero mostrar cualquier perfil local guardado (si existe)
-                val local = withContext(Dispatchers.IO) {
-                    snRepository.getProfileFlow(matricula).first()
-                }
-                if (local != null) {
-                    profileUiState = ProfileUiState.Success(local)
-                }
+        val m = normalize(matricula)
+        if (m.isEmpty() || m.contains("{") || m.contains("}")) {
+            _syncState.value = ProfileUiState.Error("Matrícula inválida: $m")
+            return
+        }
+        if (_syncState.value is ProfileUiState.Loading) return // evitar duplicados
 
-                // Luego intentar actualizar desde la red y persistir el resultado
-                val remote = withContext(Dispatchers.IO) {
-                    snRepository.profile(matricula)
+        viewModelScope.launch {
+            _syncState.value = ProfileUiState.Loading
+            try {
+                val profile = withContext(Dispatchers.IO) {
+                    snRepository.profile(m)
                 }
-                profileUiState = ProfileUiState.Success(remote)
-            } catch (e: Exception) {
-                // Si no había local, mostrar error; si había local, mantenerlo
-                if (profileUiState is ProfileUiState.Success) {
-                    // ya mostramos local
+                // Si la respuesta tiene nombre, significa que la red funcionó y guardó en Room
+                if (profile.nombre.isNotEmpty() || profile.carrera.isNotEmpty()) {
+                    Log.d("ProfileViewModel", "Perfil cargado de red para $m")
+                    _syncState.value = ProfileUiState.Success(profile)
                 } else {
-                    profileUiState = ProfileUiState.Error("Error cargando perfil: ${e.message}")
+                    // La red respondió vacío, usamos lo que tenga Room (el Flow lo maneja)
+                    Log.d("ProfileViewModel", "Respuesta vacía de red para $m, usando Room")
+                    _syncState.value = ProfileUiState.Idle
                 }
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error de red para $m: ${e.message}")
+                // No mostramos error si Room tiene datos (el Flow lo resuelve)
+                _syncState.value = ProfileUiState.Idle
             }
         }
     }
