@@ -14,8 +14,10 @@ import com.example.jlg_czg_sicenet.JLGSICENETApplication
 import com.example.jlg_czg_sicenet.data.SNRepository
 import com.example.jlg_czg_sicenet.data.local.AcademicDataEntity
 import com.example.jlg_czg_sicenet.model.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -39,6 +41,19 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
 
     var finalesUiState: AcademicUiState<Unit> by mutableStateOf(AcademicUiState.Idle)
         private set
+
+    // Timestamps de última actualización (se actualizan al finalizar cada carga)
+    private val _lastFetchedCarga = MutableStateFlow<Long?>(null)
+    val lastFetchedCarga: StateFlow<Long?> = _lastFetchedCarga.asStateFlow()
+
+    private val _lastFetchedKardex = MutableStateFlow<Long?>(null)
+    val lastFetchedKardex: StateFlow<Long?> = _lastFetchedKardex.asStateFlow()
+
+    private val _lastFetchedUnidades = MutableStateFlow<Long?>(null)
+    val lastFetchedUnidades: StateFlow<Long?> = _lastFetchedUnidades.asStateFlow()
+
+    private val _lastFetchedFinales = MutableStateFlow<Long?>(null)
+    val lastFetchedFinales: StateFlow<Long?> = _lastFetchedFinales.asStateFlow()
 
     private val _flowsCache = mutableMapOf<String, StateFlow<Any?>>()
 
@@ -103,6 +118,8 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
             } catch (e: Exception) {
                 Log.e("AcademicViewModel", "Error cargando carga ($m): ${e.message}")
                 cargaUiState = AcademicUiState.Error(e.message ?: "Error desconocido")
+            } finally {
+                _lastFetchedCarga.value = System.currentTimeMillis()
             }
         }
     }
@@ -119,6 +136,8 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
             } catch (e: Exception) {
                 Log.e("AcademicViewModel", "Error cargando kardex ($m): ${e.message}")
                 kardexUiState = AcademicUiState.Error(e.message ?: "Error desconocido")
+            } finally {
+                _lastFetchedKardex.value = System.currentTimeMillis()
             }
         }
     }
@@ -135,6 +154,8 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
             } catch (e: Exception) {
                 Log.e("AcademicViewModel", "Error cargando unidades ($m): ${e.message}")
                 unidadesUiState = AcademicUiState.Error(e.message ?: "Error desconocido")
+            } finally {
+                _lastFetchedUnidades.value = System.currentTimeMillis()
             }
         }
     }
@@ -151,6 +172,8 @@ class AcademicViewModel(private val snRepository: SNRepository) : ViewModel() {
             } catch (e: Exception) {
                 Log.e("AcademicViewModel", "Error cargando finales ($m): ${e.message}")
                 finalesUiState = AcademicUiState.Error(e.message ?: "Error desconocido")
+            } finally {
+                _lastFetchedFinales.value = System.currentTimeMillis()
             }
         }
     }

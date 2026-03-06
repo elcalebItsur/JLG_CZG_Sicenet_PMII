@@ -43,6 +43,15 @@ fun AcademicDataScreen(
         else -> AcademicUiState.Idle
     }
 
+    // Timestamp de última actualización: viene del ViewModel (se actualiza al terminar cada fetch)
+    val lastFetchedTs by when (type) {
+        "CARGA" -> viewModel.lastFetchedCarga
+        "KARDEX" -> viewModel.lastFetchedKardex
+        "UNIDADES" -> viewModel.lastFetchedUnidades
+        "FINAL" -> viewModel.lastFetchedFinales
+        else -> viewModel.lastFetchedCarga
+    }.collectAsState()
+
     // Cargar datos automáticamente al entrar
     LaunchedEffect(matricula, type) {
         if (currentUiState is AcademicUiState.Idle) {
@@ -55,10 +64,11 @@ fun AcademicDataScreen(
         }
     }
 
-    val lastUpdated = academicEntity?.lastUpdated?.let {
-        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        sdf.format(Date(it))
-    } ?: "Nunca"
+    // Formatear el timestamp para mostrarlo en pantalla
+    val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+    val lastUpdated = lastFetchedTs?.let { sdf.format(Date(it)) }
+        ?: academicEntity?.lastUpdated?.let { sdf.format(Date(it)) }
+        ?: "Nunca"
 
     Scaffold(
         topBar = {
