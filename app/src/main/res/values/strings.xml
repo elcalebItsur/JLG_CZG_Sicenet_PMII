@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">JLG_CZG_SICENET</string>
+    <string name="permission_description_read">Permite que otras aplicaciones lean tu carga académica y kardex.</string>
+    <string name="permission_description_write">Permite que otras aplicaciones modifiquen o agreguen datos académicos.</string>
 </resources>

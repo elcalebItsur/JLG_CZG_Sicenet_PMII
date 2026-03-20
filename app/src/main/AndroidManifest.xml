@@ -2,7 +2,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         PERMISOS PROPIOS DEL CONTENT PROVIDER (los define esta app)
+         Nivel "dangerous" → el usuario debe aceptarlos explícitamente
+         en la app cliente antes de acceder a los datos académicos.
+    ═══════════════════════════════════════════════════════════════════ -->
+    <permission
+        android:name="com.example.jlg_czg_sicenet.permission.READ"
+        android:label="Leer datos académicos SICEDroid"
+        android:description="@string/permission_description_read"
+        android:protectionLevel="dangerous" />
+
+    <permission
+        android:name="com.example.jlg_czg_sicenet.permission.WRITE"
+        android:label="Escribir datos académicos SICEDroid"
+        android:description="@string/permission_description_write"
+        android:protectionLevel="dangerous" />
+
+    <!-- La propia app declara que usa sus permisos (para pruebas internas) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="com.example.jlg_czg_sicenet.permission.READ" />
+    <uses-permission android:name="com.example.jlg_czg_sicenet.permission.WRITE" />
 
     <application
         android:name=".JLGSICENETApplication"
@@ -12,7 +32,20 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         tools:targetApi="31">
-        
+
+        <!-- ══════════════════════════════════════════════════════════════
+             CONTENT PROVIDER — Sicenet Academic Data Provider
+             exported=true   → necesario para que apps externas lo usen
+             readPermission  → solo quien tenga el permiso READ puede leer
+             writePermission → solo quien tenga el permiso WRITE puede escribir
+        ═══════════════════════════════════════════════════════════════ -->
+        <provider
+            android:name=".data.provider.SicenetContentProvider"
+            android:authorities="com.example.jlg_czg_sicenet.provider"
+            android:exported="true"
+            android:readPermission="com.example.jlg_czg_sicenet.permission.READ"
+            android:writePermission="com.example.jlg_czg_sicenet.permission.WRITE" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
